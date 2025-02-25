@@ -13,6 +13,15 @@ pub(crate) enum BCSTree<A: Data, B: Metadata> {
     Node(B, Box<BCSTree<A, B>>, Box<BCSTree<A, B>>),
 }
 
+impl<A: Data, B: Metadata> BCSTree<A, B> {
+    pub(crate) fn size(&self) -> usize {
+	match self {
+	    Self::Leaf(_) => 1,
+	    Self::Node(_, x, y) => 1 + x.size() + y.size(),
+	}
+    }
+}
+
 impl<A: Data, B: Metadata> From<RCSTree<A, B>> for BCSTree<A, B> {
     fn from(t: RCSTree<A, B>) -> Self {
         match t {
