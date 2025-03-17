@@ -1,49 +1,41 @@
-//! Binary Concrete Syntax Tree --- binary representation for `tree_sitter`'s `Tree`s
-//!
-//! `BCSTree` should only be constructed from (and destructed into) `RCSTree`s.
-
 use crate::backend::{
+    data::{Data, DATA_NIL},
+    metadata::{Metadata, META_CONS},
     rcst::{List, RCSTree},
-    types::{Data, Metadata},
 };
+use std::{rc::Rc, sync::Once};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum BCSTree<A: Data, B: Metadata> {
-    Leaf(A),
-    Node(B, Box<BCSTree<A, B>>, Box<BCSTree<A, B>>),
+pub(crate) enum BCSTree {
+    Leaf(Data),
+    Node(Metadata, Rc<BCSTree>, Rc<BCSTree>),
 }
 
-impl<A: Data, B: Metadata> BCSTree<A, B> {
-    pub(crate) fn size(&self) -> usize {
-	match self {
-	    Self::Leaf(_) => 1,
-	    Self::Node(_, x, y) => 1 + x.size() + y.size(),
-	}
-    }
-}
+pub(crate) const LEAF_NIL: BCSTree = BCSTree::Leaf(DATA_NIL);
 
-impl<A: Data, B: Metadata> From<RCSTree<A, B>> for BCSTree<A, B> {
-    fn from(t: RCSTree<A, B>) -> Self {
+impl From<RCSTree> for BCSTree {
+    fn from(t: RCSTree) -> Self {
         match t {
             RCSTree::Leaf(x) => BCSTree::Leaf(x),
-            RCSTree::Node(m, children) => {
-                if let Some(x) = children.car() {
-                    let xs = children.cdr();
+            RCSTree::Node(m, xs) => {
+                if let Some(x) = xs.car() {
+                    /* unwrap is safe */
+                    match xs.cdr().unwrap().as_ref() {
+                        List::Nil => {
+                            let bx = x.as_ref().clone().into();
 
-                    if let List::Nil = xs {
-                        BCSTree::Node(m, Box::new((*x).into()), Box::new(BCSTree::Leaf(A::nil())))
-                    } else {
-                        let bx = (*x).into();
-                        let bxs = RCSTree::Node(B::cons(), xs).into();
+                            BCSTree::Node(m, Rc::new(bx), Rc::new(LEAF_NIL))
+                        }
+                        List::Cons(y, ys) => {
+                            let by = y.as_ref().clone().into();
+                            let bys = RCSTree::Node(META_CONS, ys.as_ref().clone()).into();
 
-                        BCSTree::Node(m, Box::new(bx), Box::new(bxs))
+                            BCSTree::Node(m, Rc::new(by), Rc::new(bys))
+                        }
                     }
                 } else {
-                    BCSTree::Node(
-                        m,
-                        Box::new(BCSTree::Leaf(A::nil())),
-                        Box::new(BCSTree::Leaf(A::nil())),
-                    )
+                    let nil_rc = Rc::new(LEAF_NIL);
+                    BCSTree::Node(m, nil_rc.clone(), nil_rc)
                 }
             }
         }
