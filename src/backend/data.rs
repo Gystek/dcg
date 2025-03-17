@@ -1,6 +1,6 @@
 use tree_sitter::Node;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct Data;
 
 impl<'a> From<Node<'a>> for Data {

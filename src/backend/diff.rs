@@ -1,45 +1,41 @@
-//! Diff data type for representing changes between `BCSTree`s.
-use std::cmp::Ordering;
+use crate::backend::{metadata::Metadata, bcst::BCSTree};
+use std::{cmp::Ordering, rc::Rc};
 
-use crate::backend::{types::{Data, Metadata}, bcst::BCSTree};
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) enum Diff<A: Data, B: Metadata> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Diff {
     Eps,
-    TEps(B, Box<Diff<A, B>>, Box<Diff<A, B>>),
-    Mod(BCSTree<A, B>, BCSTree<A, B>),
-    TMod(B, B, Box<Diff<A, B>>, Box<Diff<A, B>>),
-    AddL(B, BCSTree<A, B>, Box<Diff<A, B>>),
-    AddR(B, Box<Diff<A, B>>, BCSTree<A, B>),
-    DelL(Box<Diff<A, B>>),
-    DelR(Box<Diff<A, B>>),
+    TEps(Metadata, Rc<Diff>, Rc<Diff>),
+    Mod(Rc<BCSTree>, Rc<BCSTree>),
+    TMod(Metadata, Metadata, Rc<Diff>, Rc<Diff>),
+    AddL(Metadata, Rc<BCSTree>, Rc<Diff>),
+    AddR(Metadata, Rc<Diff>, Rc<BCSTree>),
+    DelL(Rc<Diff>),
+    DelR(Rc<Diff>),
 }
 
-impl<A: Data, B: Metadata> Diff<A, B> {
-    /// The weight of a `Diff` represents its cost of application
-    /// and of storage (once serialised).
+impl Diff {
     pub(crate) fn weight(&self) -> usize {
 	match self {
 	    Self::Eps => 0,
-	    Self::TEps(_, left, right) => left.weight() + right.weight(),
-	    Self::Mod(from, to) => 1 + from.size() + to.size(),
-	    Self::TMod(_, _, left, right) => 1 + left.weight() + right.weight(),
+	    Self::TEps(_, x, y) => x.weight() + y.weight(),
+	    Self::Mod(x, y) => 1 + x.size() + y.size(),
+	    Self::TMod(_, _, x, y) => 1 + x.weight() + y.weight(),
 	    Self::AddL(_, t, d) => 1 + t.size() + d.weight(),
 	    Self::AddR(_, d, t) => 1 + t.size() + d.weight(),
-	    Self::DelL(t) => 1 + t.weight(),
-	    Self::DelR(t) => 1 + t.weight(),
+	    Self::DelL(d) => 1 + d.weight(),
+	    Self::DelR(d) => 1 + d.weight(),
 	}
     }
 }
 
-impl<A: Data, B: Metadata> PartialOrd for Diff<A, B> {
-    fn partial_cmp(&self, other: &Diff<A, B>) -> Option<Ordering> {
+impl PartialOrd for Diff {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
 	Some(self.cmp(other))
     }
 }
 
-impl<A: Data, B: Metadata> Ord for Diff<A, B> {
-    fn cmp(&self, other: &Diff<A, B>) -> Ordering {
+impl Ord for Diff {
+    fn cmp(&self, other: &Self) -> Ordering {
 	self.weight().cmp(&other.weight())
     }
 }
