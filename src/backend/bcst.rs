@@ -3,8 +3,9 @@ use crate::backend::{
     metadata::{Metadata, META_CONS},
     rcst::{List, RCSTree},
     diff::Diff,
+    patch::PatchError,
 };
-use std::{collections::HashMap, rc::Rc, sync::Once};
+use std::{collections::HashMap, rc::Rc};
 
 #[derive(Hash, Clone, Debug, PartialEq, Eq)]
 pub(crate) enum BCSTree {
@@ -73,6 +74,30 @@ pub(crate) fn diff(left: Rc<BCSTree>, right: Rc<BCSTree>, mem: &mut DiffMem) -> 
 	mem.insert((left, right), d.clone());
 
 	d
+    }
+}
+
+pub(crate) fn patch(t: Rc<BCSTree>, d: Rc<Diff>) -> Result<Rc<BCSTree>, PatchError> {
+    match (t.as_ref(), d.as_ref()) {
+	(_, Diff::Eps) => Ok(t),
+	(_, Diff::Mod(x, y)) if &t == x => Ok(y.clone()),
+	(BCSTree::Node(t, x, y), Diff::TEps(td, dx, dy)) if t == td => {
+	    let px = patch(x.clone(), dx.clone())?;
+	    let py = patch(y.clone(), dy.clone())?;
+
+	    Ok(Rc::new(BCSTree::Node(*t, px, py)))
+	}
+	(_, Diff::AddL(td, x, dy)) => patch(t, dy.clone()).map(|y| Rc::new(BCSTree::Node(*td, x.clone(), y))),
+	(_, Diff::AddR(td, dx, y)) => patch(t, dx.clone()).map(|x| Rc::new(BCSTree::Node(*td, x, y.clone()))),
+	(BCSTree::Node(_, _, y), Diff::DelL(dy)) => patch(y.clone(), dy.clone()),
+	(BCSTree::Node(_, x, _), Diff::DelR(dx)) => patch(x.clone(), dx.clone()),
+	(BCSTree::Node(t, x, y), Diff::TMod(t0, t1, dx, dy)) if t0 == t => {
+	    let px = patch(x.clone(), dx.clone())?;
+	    let py = patch(y.clone(), dy.clone())?;
+
+	    Ok(Rc::new(BCSTree::Node(*t1, px, py)))
+	}
+	_ => Err(PatchError(t, d)),
     }
 }
 
