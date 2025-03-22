@@ -36,7 +36,7 @@ pub(crate) enum RCSTree<'a> {
 }
 
 impl<'a> RCSTree<'a> {
-    fn from(node: Node<'a>, source: &'a str) -> Self {
+    pub(crate) fn from(node: Node<'a>, source: &'a str) -> Self {
         if node.child_count() == 0 {
             RCSTree::Leaf(Data::from(node, source))
         } else {

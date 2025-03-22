@@ -28,6 +28,6 @@ impl<'a> Data<'a> {
 pub(crate) const DATA_NIL: Data = Data {
     node_type: None,
     range: (0, 0)..(0, 0),
-    text: "",
+    text: "NIL",
     named: false,
 };

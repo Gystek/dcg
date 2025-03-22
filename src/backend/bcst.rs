@@ -28,12 +28,12 @@ type DiffMem<'a> = HashMap<(Rc<BCSTree<'a>>, Rc<BCSTree<'a>>), Rc<Diff<'a>>>;
 
 fn diff_leaf<'a>(x: Data<'a>, y: Data<'a>) -> Option<Diff<'a>> {
     match (x.named, y.named) {
-	(false, false) => Some(Diff::RMod(y.range, y.text)),
+	(false, false) => Some(Diff::RMod(y.node_type, y.range, y.text)),
 	(true, true) => {
 	    if x.node_type != y.node_type {
 		None
 	    } else if x.range != y.range || x.text != y.text {
-		    Some(Diff::RMod(y.range, y.text))
+		    Some(Diff::RMod(y.node_type, y.range, y.text))
 	    } else {
 		Some(Diff::Eps)
 	    }
@@ -98,6 +98,16 @@ pub(crate) fn diff<'a>(left: Rc<BCSTree<'a>>, right: Rc<BCSTree<'a>>, mem: &mut 
 pub(crate) fn patch<'a>(t: Rc<BCSTree<'a>>, d: Rc<Diff<'a>>) -> Result<Rc<BCSTree<'a>>, PatchError<'a>> {
     match (t.as_ref(), d.as_ref()) {
 	(_, Diff::Eps) => Ok(t),
+	(BCSTree::Leaf(x), Diff::RMod(t, r, txt)) => {
+	    let nx = Data {
+		node_type: *t,
+		range: r.clone(),
+		text: txt,
+		named: x.named
+	    };
+
+	    Ok(Rc::new(BCSTree::Leaf(nx)))
+	}
 	(_, Diff::Mod(x, y)) if &t == x => Ok(y.clone()),
 	(BCSTree::Node(t, x, y), Diff::TEps(td, dx, dy)) if t == td => {
 	    let px = patch(x.clone(), dx.clone())?;
@@ -147,5 +157,128 @@ impl<'a> From<RCSTree<'a>> for BCSTree<'a> {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use tree_sitter::Parser;
+
+    use std::{collections::HashMap, rc::Rc};
+
+    use super::{diff, patch, BCSTree, RCSTree};
+
+    #[test]
+    fn no_difference() {
+	let code = "pub fn foo() {\n  1\n}";
+
+	let mut parser = Parser::new();
+
+	parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
+
+	let tree  = parser.parse(code, None).unwrap();
+	let node = tree.root_node();
+
+	let rcst = RCSTree::from(node, code);
+	let bcst: Rc<BCSTree> = Rc::new(rcst.into());
+
+	let mut mem = HashMap::new();
+	let diff = diff(bcst.clone(), bcst.clone(), &mut mem);
+
+	let patch = patch(bcst.clone(), diff).unwrap();
+
+	assert_eq!(bcst, patch)
+    }
+
+    #[test]
+    fn diff0() {
+	let left = "pub fn foo() {\n  1\n}";
+	let right = "pub fn bar() {\n  1\n}";
+
+	let mut parser = Parser::new();
+
+	parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
+
+	let ltree  = parser.parse(left, None).unwrap();
+	let lnode = ltree.root_node();
+
+	let rtree = parser.parse(right, None).unwrap();
+	let rnode = rtree.root_node();
+
+	let lrcst = RCSTree::from(lnode, left);
+	let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+
+	let rrcst = RCSTree::from(rnode, right);
+	let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+
+	let mut mem = HashMap::new();
+	let diff = diff(lbcst.clone(), rbcst.clone(), &mut mem);
+
+	let patch = patch(lbcst, diff).unwrap();
+
+	assert_eq!(rbcst, patch)
+    }
+
+    #[test]
+    fn diff1() {
+	let left = "pub fn foo() {\n  1\n}";
+	let right = "pub fn foo() {\nlet x = 5;\n  3\n}";
+
+	let mut parser = Parser::new();
+
+	parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
+
+	let ltree  = parser.parse(left, None).unwrap();
+	let lnode = ltree.root_node();
+
+	let rtree = parser.parse(right, None).unwrap();
+	let rnode = rtree.root_node();
+
+	let lrcst = RCSTree::from(lnode, left);
+	let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+
+	let rrcst = RCSTree::from(rnode, right);
+	let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+
+	let mut mem = HashMap::new();
+	let diff = diff(lbcst.clone(), rbcst.clone(), &mut mem);
+
+	let patch = patch(lbcst, diff).unwrap();
+
+	assert_eq!(rbcst, patch)
+    }
+
+    #[test]
+    fn diff2() {
+	let left = "pub fn foo() {\n  1\n}";
+	let right = "struct Foo { i: i32 }";
+
+	let mut parser = Parser::new();
+
+	parser.set_language(&tree_sitter_rust::LANGUAGE.into()).unwrap();
+
+	let ltree  = parser.parse(left, None).unwrap();
+	let lnode = ltree.root_node();
+
+	let rtree = parser.parse(right, None).unwrap();
+	let rnode = rtree.root_node();
+
+	let lrcst = RCSTree::from(lnode, left);
+	let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+
+	let rrcst = RCSTree::from(rnode, right);
+	let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+
+	let mut mem = HashMap::new();
+	let diff = diff(lbcst.clone(), rbcst.clone(), &mut mem);
+
+	println!("{:#?}", diff);
+	println!("{:#?}", lbcst);
+
+	let patch = patch(lbcst, diff).unwrap();
+
+	println!("{:#?}", patch);
+
+	assert_eq!(rbcst, patch)
     }
 }

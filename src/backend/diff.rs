@@ -1,11 +1,11 @@
 //! Tree differences datatype
-use crate::backend::{metadata::Metadata, data::Data, bcst::BCSTree};
+use crate::backend::{metadata::Metadata, bcst::BCSTree};
 use std::{ops::Range, cmp::Ordering, rc::Rc};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Diff<'a> {
     Eps,
-    RMod(Range<(usize, usize)>, &'a str),
+    RMod(Option<u16>, Range<(usize, usize)>, &'a str),
     TEps(Metadata, Rc<Diff<'a>>, Rc<Diff<'a>>),
     Mod(Rc<BCSTree<'a>>, Rc<BCSTree<'a>>),
     TMod(Metadata, Metadata, Rc<Diff<'a>>, Rc<Diff<'a>>),
@@ -19,7 +19,7 @@ impl<'a> Diff<'a> {
     pub(crate) fn weight(&self) -> usize {
 	match self {
 	    Self::Eps => 0,
-	    Self::RMod(_, _) => 0,
+	    Self::RMod(_, _, _) => 0,
 	    Self::TEps(_, x, y) => x.weight() + y.weight(),
 	    Self::Mod(x, y) => 1 + x.size() + y.size(),
 	    Self::TMod(_, _, x, y) => 1 + x.weight() + y.weight(),
