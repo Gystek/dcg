@@ -1,3 +1,4 @@
+//! Rose Concrete Syntax Tree - IR for tree_sitter `Node`s
 use crate::backend::{
     bcst::{BCSTree, LEAF_NIL},
     data::{Data, DATA_NIL},

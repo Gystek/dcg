@@ -1,3 +1,4 @@
+//! Tree differences datatype
 use crate::backend::{metadata::Metadata, data::Data, bcst::BCSTree};
 use std::{ops::Range, cmp::Ordering, rc::Rc};
 

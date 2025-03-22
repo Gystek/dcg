@@ -1,3 +1,5 @@
+//! Binary Concrete Syntax Tree - convenient representation of tree_sitter `Node`s
+
 use crate::backend::{
     data::{Data, DATA_NIL},
     metadata::{Metadata, META_CONS},

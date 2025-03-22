@@ -1,3 +1,4 @@
+//! Representation of `Node` leaf data
 use std::ops::Range;
 
 use tree_sitter::Node;

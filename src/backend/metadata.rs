@@ -1,3 +1,4 @@
+//! Representation of non-terminal `Node` (de facto meta)data.
 use tree_sitter::Node;
 
 #[derive(Hash, Debug, Copy, Clone, PartialEq, Eq)]
