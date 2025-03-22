@@ -11,7 +11,7 @@ Roadmap
   - [x] `Node` to IR
   - [x] Diff/patch
   - [x] Extract data/metadata from `Node`s
-  - [ ] Formatting preservation
+  - [x] Formatting preservation
   - [ ] IR serialisation
   - [ ] Merge
 - [ ] Frontend

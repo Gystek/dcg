@@ -13,21 +13,21 @@ pub(crate) struct Data<'a> {
 
 impl<'a> Data<'a> {
     pub(crate) fn from(node: Node<'a>, src: &'a str) -> Self {
-	let start = node.start_position();
-	let end = node.end_position();
-	
+        let start = node.start_position();
+        let end = node.end_position();
+
         Data {
-	    node_type: Some(node.kind_id()),
-	    range: (start.row, start.column)..(end.row, end.column),
-	    text: &src[node.start_byte()..node.end_byte()],
-	    named: node.is_named(),
-	}
+            node_type: Some(node.kind_id()),
+            range: (start.row, start.column)..(end.row, end.column),
+            text: &src[node.start_byte()..node.end_byte()],
+            named: node.is_named(),
+        }
     }
 }
 
 pub(crate) const DATA_NIL: Data = Data {
     node_type: None,
     range: (0, 0)..(0, 0),
-    text: "NIL",
+    text: "",
     named: false,
 };

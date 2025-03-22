@@ -42,56 +42,13 @@ impl<'a> RCSTree<'a> {
         } else {
             let mut children = List::Nil;
 
-            for i in 0..node.child_count() {
+            for i in (0..node.child_count()).rev() {
                 let child = node.child(i).unwrap();
 
                 children = List::Cons(Rc::new(RCSTree::from(child, source)), Rc::new(children));
             }
 
             RCSTree::Node(Metadata::from(node), children)
-        }
-    }
-}
-
-fn bin_to_cons<'a>(t: &BCSTree<'a>) -> List<Rc<RCSTree<'a>>> {
-    match t {
-        BCSTree::Leaf(x) => {
-            if x == &DATA_NIL {
-                List::Nil
-            } else {
-                unreachable!("this shouldn't be reachable on well-formed trees");
-            }
-        }
-        BCSTree::Node(m, x, y) => {
-            if m == &META_CONS {
-                let rx = x.as_ref().clone().into();
-                let rxs = bin_to_cons(y);
-
-                List::Cons(Rc::new(rx), Rc::new(rxs))
-            } else {
-                unreachable!("this shouldn't be reachable on well-formed trees");
-            }
-        }
-    }
-}
-
-impl<'a> From<BCSTree<'a>> for RCSTree<'a> {
-    fn from(t: BCSTree<'a>) -> Self {
-        match t {
-            BCSTree::Leaf(x) => RCSTree::Leaf(x),
-            BCSTree::Node(m, x, y) => {
-                if y.as_ref() == &LEAF_NIL {
-                    RCSTree::Node(
-                        m,
-                        List::Cons(Rc::new(x.as_ref().clone().into()), Rc::new(List::Nil)),
-                    )
-                } else {
-                    let rx = x.as_ref().clone().into();
-                    let rxs = bin_to_cons(x.as_ref());
-
-                    RCSTree::Node(m, List::Cons(Rc::new(rx), Rc::new(rxs)))
-                }
-            }
         }
     }
 }

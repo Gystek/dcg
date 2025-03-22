@@ -1,6 +1,6 @@
 //! Tree differences datatype
-use crate::backend::{metadata::Metadata, bcst::BCSTree};
-use std::{ops::Range, cmp::Ordering, rc::Rc};
+use crate::backend::{bcst::BCSTree, metadata::Metadata};
+use std::{cmp::Ordering, ops::Range, rc::Rc};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Diff<'a> {
@@ -17,28 +17,28 @@ pub(crate) enum Diff<'a> {
 
 impl<'a> Diff<'a> {
     pub(crate) fn weight(&self) -> usize {
-	match self {
-	    Self::Eps => 0,
-	    Self::RMod(_, _, _) => 0,
-	    Self::TEps(_, x, y) => x.weight() + y.weight(),
-	    Self::Mod(x, y) => 1 + x.size() + y.size(),
-	    Self::TMod(_, _, x, y) => 1 + x.weight() + y.weight(),
-	    Self::AddL(_, t, d) => 1 + t.size() + d.weight(),
-	    Self::AddR(_, d, t) => 1 + t.size() + d.weight(),
-	    Self::DelL(d) => 1 + d.weight(),
-	    Self::DelR(d) => 1 + d.weight(),
-	}
+        match self {
+            Self::Eps => 0,
+            Self::RMod(_, _, _) => 0,
+            Self::TEps(_, x, y) => x.weight() + y.weight(),
+            Self::Mod(x, y) => 1 + x.size() + y.size(),
+            Self::TMod(_, _, x, y) => 1 + x.weight() + y.weight(),
+            Self::AddL(_, t, d) => 1 + t.size() + d.weight(),
+            Self::AddR(_, d, t) => 1 + t.size() + d.weight(),
+            Self::DelL(d) => 1 + d.weight(),
+            Self::DelR(d) => 1 + d.weight(),
+        }
     }
 }
 
 impl<'a> PartialOrd for Diff<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-	Some(self.cmp(other))
+        Some(self.cmp(other))
     }
 }
 
 impl<'a> Ord for Diff<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
-	self.weight().cmp(&other.weight())
+        self.weight().cmp(&other.weight())
     }
 }
