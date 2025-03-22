@@ -1,0 +1,7 @@
+*.olean
+/_target
+/leanpkg.path
+/.lake
+*.hi
+*.o
+dcg

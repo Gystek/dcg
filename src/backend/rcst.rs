@@ -29,32 +29,30 @@ impl<A> List<A> {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) enum RCSTree {
-    Leaf(Data),
-    Node(Metadata, List<Rc<RCSTree>>),
+pub(crate) enum RCSTree<'a> {
+    Leaf(Data<'a>),
+    Node(Metadata, List<Rc<RCSTree<'a>>>),
 }
 
-impl<'a> From<Node<'a>> for RCSTree {
-    fn from(node: Node<'a>) -> Self {
-        let meta = Metadata::from(node);
-
+impl<'a> RCSTree<'a> {
+    fn from(node: Node<'a>, source: &'a str) -> Self {
         if node.child_count() == 0 {
-            RCSTree::Leaf(Data::from(node))
+            RCSTree::Leaf(Data::from(node, source))
         } else {
             let mut children = List::Nil;
 
             for i in 0..node.child_count() {
                 let child = node.child(i).unwrap();
 
-                children = List::Cons(Rc::new(child.into()), Rc::new(children));
+                children = List::Cons(Rc::new(RCSTree::from(child, source)), Rc::new(children));
             }
 
-            RCSTree::Node(meta, children)
+            RCSTree::Node(Metadata::from(node), children)
         }
     }
 }
 
-fn bin_to_cons(t: &BCSTree) -> List<Rc<RCSTree>> {
+fn bin_to_cons<'a>(t: &BCSTree<'a>) -> List<Rc<RCSTree<'a>>> {
     match t {
         BCSTree::Leaf(x) => {
             if x == &DATA_NIL {
@@ -76,8 +74,8 @@ fn bin_to_cons(t: &BCSTree) -> List<Rc<RCSTree>> {
     }
 }
 
-impl From<BCSTree> for RCSTree {
-    fn from(t: BCSTree) -> Self {
+impl<'a> From<BCSTree<'a>> for RCSTree<'a> {
+    fn from(t: BCSTree<'a>) -> Self {
         match t {
             BCSTree::Leaf(x) => RCSTree::Leaf(x),
             BCSTree::Node(m, x, y) => {
@@ -94,11 +92,5 @@ impl From<BCSTree> for RCSTree {
                 }
             }
         }
-    }
-}
-
-impl RCSTree {
-    pub(crate) fn to_node<'a>(self) -> Node<'a> {
-        todo!()
     }
 }

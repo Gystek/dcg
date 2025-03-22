@@ -10,8 +10,9 @@ Roadmap
 - [ ] Backend
   - [x] `Node` to IR
   - [x] Diff/patch
-  - [ ] Extract data/metadata from `Node`s
-  - [ ] IR to `Node`
+  - [x] Extract data/metadata from `Node`s
+  - [ ] Formatting preservation
+  - [ ] IR serialisation
   - [ ] Merge
 - [ ] Frontend
   - [ ] Diff pretty-printer
@@ -27,6 +28,5 @@ Licence
 -------
 
 dcg is licensed under the GNU General Public License version 2.0 only.  
-
 The full text of the licence can be accessed via [this link](https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt)
 and is also included in the [licence file](./COPYING) of this software package.

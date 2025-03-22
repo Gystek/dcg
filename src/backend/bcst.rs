@@ -8,12 +8,12 @@ use crate::backend::{
 use std::{collections::HashMap, rc::Rc};
 
 #[derive(Hash, Clone, Debug, PartialEq, Eq)]
-pub(crate) enum BCSTree {
-    Leaf(Data),
-    Node(Metadata, Rc<BCSTree>, Rc<BCSTree>),
+pub(crate) enum BCSTree<'a> {
+    Leaf(Data<'a>),
+    Node(Metadata, Rc<BCSTree<'a>>, Rc<BCSTree<'a>>),
 }
 
-impl BCSTree {
+impl<'a> BCSTree<'a> {
     pub(crate) fn size(&self) -> usize {
 	match self {
 	    Self::Leaf(_) => 1,
@@ -22,15 +22,31 @@ impl BCSTree {
     }
 }
 
-type DiffMem = HashMap<(Rc<BCSTree>, Rc<BCSTree>), Rc<Diff>>;
+type DiffMem<'a> = HashMap<(Rc<BCSTree<'a>>, Rc<BCSTree<'a>>), Rc<Diff<'a>>>;
 
-pub(crate) fn diff(left: Rc<BCSTree>, right: Rc<BCSTree>, mem: &mut DiffMem) -> Rc<Diff> {
+fn diff_leaf<'a>(x: Data<'a>, y: Data<'a>) -> Option<Diff<'a>> {
+    match (x.named, y.named) {
+	(false, false) => Some(Diff::RMod(y.range, y.text)),
+	(true, true) => {
+	    if x.node_type != y.node_type {
+		None
+	    } else if x.range != y.range || x.text != y.text {
+		    Some(Diff::RMod(y.range, y.text))
+	    } else {
+		Some(Diff::Eps)
+	    }
+	}
+	_ => None,
+    }
+}
+
+pub(crate) fn diff<'a>(left: Rc<BCSTree<'a>>, right: Rc<BCSTree<'a>>, mem: &mut DiffMem<'a>) -> Rc<Diff<'a>> {
     if let Some(d) = mem.get(&(left.clone(), right.clone())) {
 	d.clone()
     } else {
 	let d = Rc::new(match (left.clone().as_ref(), right.clone().as_ref()) {
-	    (BCSTree::Leaf(x), BCSTree::Leaf(y)) if x == y => Diff::Eps,
-	    (BCSTree::Leaf(_), BCSTree::Leaf(_)) => Diff::Mod(left.clone(), right.clone()),
+
+	    (BCSTree::Leaf(x), BCSTree::Leaf(y)) => diff_leaf(x.clone(), y.clone()).or(Some(Diff::Mod(left.clone(), right.clone()))).unwrap(),
 	    (BCSTree::Node(a, x0, y0), BCSTree::Node(b, x1, y1)) => {
 		let dxx = diff(x0.clone(), x1.clone(), mem);
 		let dyy = diff(y0.clone(), y1.clone(), mem);
@@ -77,7 +93,7 @@ pub(crate) fn diff(left: Rc<BCSTree>, right: Rc<BCSTree>, mem: &mut DiffMem) -> 
     }
 }
 
-pub(crate) fn patch(t: Rc<BCSTree>, d: Rc<Diff>) -> Result<Rc<BCSTree>, PatchError> {
+pub(crate) fn patch<'a>(t: Rc<BCSTree<'a>>, d: Rc<Diff<'a>>) -> Result<Rc<BCSTree<'a>>, PatchError<'a>> {
     match (t.as_ref(), d.as_ref()) {
 	(_, Diff::Eps) => Ok(t),
 	(_, Diff::Mod(x, y)) if &t == x => Ok(y.clone()),
@@ -103,8 +119,8 @@ pub(crate) fn patch(t: Rc<BCSTree>, d: Rc<Diff>) -> Result<Rc<BCSTree>, PatchErr
 
 pub(crate) const LEAF_NIL: BCSTree = BCSTree::Leaf(DATA_NIL);
 
-impl From<RCSTree> for BCSTree {
-    fn from(t: RCSTree) -> Self {
+impl<'a> From<RCSTree<'a>> for BCSTree<'a> {
+    fn from(t: RCSTree<'a>) -> Self {
         match t {
             RCSTree::Leaf(x) => BCSTree::Leaf(x),
             RCSTree::Node(m, xs) => {
