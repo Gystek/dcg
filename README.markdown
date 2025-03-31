@@ -12,7 +12,7 @@ Roadmap
   - [x] Diff/patch
   - [x] Extract data/metadata from `Node`s
   - [x] Formatting preservation
-  - [ ] IR serialisation
+  - [x] IR serialisation
   - [ ] Merge
 - [ ] Frontend
   - [ ] Diff pretty-printer

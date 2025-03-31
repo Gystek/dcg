@@ -7,6 +7,7 @@ use tree_sitter::Node;
 pub(crate) struct Data<'a> {
     pub(crate) node_type: Option<u16>,
     pub(crate) range: Range<(usize, usize)>,
+    pub(crate) byte_range: Range<usize>,
     pub(crate) text: &'a str,
     pub(crate) named: bool,
 }
@@ -19,6 +20,7 @@ impl<'a> Data<'a> {
         Data {
             node_type: Some(node.kind_id()),
             range: (start.row, start.column)..(end.row, end.column),
+            byte_range: node.start_byte()..node.end_byte(),
             text: &src[node.start_byte()..node.end_byte()],
             named: node.is_named(),
         }
@@ -28,6 +30,7 @@ impl<'a> Data<'a> {
 pub(crate) const DATA_NIL: Data = Data {
     node_type: None,
     range: (0, 0)..(0, 0),
+    byte_range: 0..0,
     text: "",
     named: false,
 };

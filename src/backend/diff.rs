@@ -5,7 +5,7 @@ use std::{cmp::Ordering, ops::Range, rc::Rc};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Diff<'a> {
     Eps,
-    RMod(Option<u16>, Range<(usize, usize)>, &'a str),
+    RMod(Option<u16>, Range<(usize, usize)>, Range<usize>, &'a str),
     TEps(Metadata, Rc<Diff<'a>>, Rc<Diff<'a>>),
     Mod(Rc<BCSTree<'a>>, Rc<BCSTree<'a>>),
     TMod(Metadata, Metadata, Rc<Diff<'a>>, Rc<Diff<'a>>),
@@ -15,11 +15,11 @@ pub(crate) enum Diff<'a> {
     DelR(Rc<Diff<'a>>),
 }
 
-impl<'a> Diff<'a> {
+impl Diff<'_> {
     pub(crate) fn weight(&self) -> usize {
         match self {
             Self::Eps => 0,
-            Self::RMod(_, _, _) => 0,
+            Self::RMod(_, _, _, _) => 0,
             Self::TEps(_, x, y) => x.weight() + y.weight(),
             Self::Mod(x, y) => 1 + x.size() + y.size(),
             Self::TMod(_, _, x, y) => 1 + x.weight() + y.weight(),
@@ -31,13 +31,13 @@ impl<'a> Diff<'a> {
     }
 }
 
-impl<'a> PartialOrd for Diff<'a> {
+impl PartialOrd for Diff<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<'a> Ord for Diff<'a> {
+impl Ord for Diff<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.weight().cmp(&other.weight())
     }

@@ -15,7 +15,7 @@ pub(crate) enum BCSTree<'a> {
     Node(Metadata, Rc<BCSTree<'a>>, Rc<BCSTree<'a>>),
 }
 
-impl<'a> BCSTree<'a> {
+impl BCSTree<'_> {
     pub(crate) fn size(&self) -> usize {
         match self {
             Self::Leaf(_) => 1,
@@ -24,7 +24,7 @@ impl<'a> BCSTree<'a> {
     }
 }
 
-pub(crate) fn bcst_to_code<'a>(t: Rc<BCSTree<'a>>) -> String {
+pub(crate) fn bcst_to_code(t: Rc<BCSTree<'_>>) -> String {
     let mut s = String::new();
 
     bcst_to_code_rec(t, &mut s, (0, 0));
@@ -32,34 +32,38 @@ pub(crate) fn bcst_to_code<'a>(t: Rc<BCSTree<'a>>) -> String {
     s
 }
 
-fn bcst_to_code_rec<'a>(t: Rc<BCSTree<'a>>, s: &mut String, (mut line, mut col): (usize, usize)) -> (usize, usize) {
+fn bcst_to_code_rec(
+    t: Rc<BCSTree<'_>>,
+    s: &mut String,
+    (mut line, mut col): (usize, usize),
+) -> (usize, usize) {
     match t.as_ref() {
-	BCSTree::Leaf(x) => {
-	    if x == &DATA_NIL {
-		return (line, col);
-	    }
+        BCSTree::Leaf(x) => {
+            if x == &DATA_NIL {
+                return (line, col);
+            }
 
-	    let (xl, xc) = x.range.start;
+            let (xl, xc) = x.range.start;
 
-	    while line < xl {
-		s.push('\n');
-		line += 1;
-		col = 0;
-	    }
+            while line < xl {
+                s.push('\n');
+                line += 1;
+                col = 0;
+            }
 
-	    while col < xc {
-		s.push(' ');
-		col += 1;
-	    }
+            while col < xc {
+                s.push(' ');
+                col += 1;
+            }
 
-	    s.push_str(x.text);
+            s.push_str(x.text);
 
-	    x.range.end
-	}
-	BCSTree::Node(_, left, right) => {
-	    let npos = bcst_to_code_rec(left.clone(), s, (line, col));
-	    bcst_to_code_rec(right.clone(), s, npos)
-	}
+            x.range.end
+        }
+        BCSTree::Node(_, left, right) => {
+            let npos = bcst_to_code_rec(left.clone(), s, (line, col));
+            bcst_to_code_rec(right.clone(), s, npos)
+        }
     }
 }
 
@@ -71,14 +75,14 @@ fn diff_leaf<'a>(x: Data<'a>, y: Data<'a>) -> Option<Diff<'a>> {
             if y.node_type == x.node_type && y.range == x.range && y.text == x.text {
                 Some(Diff::Eps)
             } else {
-                Some(Diff::RMod(y.node_type, y.range, y.text))
+                Some(Diff::RMod(y.node_type, y.range, y.byte_range, y.text))
             }
         }
         (true, true) => {
             if x.node_type != y.node_type {
                 None
             } else if x.range != y.range || x.text != y.text {
-                Some(Diff::RMod(y.node_type, y.range, y.text))
+                Some(Diff::RMod(y.node_type, y.range, y.byte_range, y.text))
             } else {
                 Some(Diff::Eps)
             }
@@ -96,9 +100,9 @@ pub(crate) fn diff<'a>(
         d.clone()
     } else {
         let d = Rc::new(match (left.clone().as_ref(), right.clone().as_ref()) {
-            (BCSTree::Leaf(x), BCSTree::Leaf(y)) => diff_leaf(x.clone(), y.clone())
-                .or(Some(Diff::Mod(left.clone(), right.clone())))
-                .unwrap(),
+            (BCSTree::Leaf(x), BCSTree::Leaf(y)) => {
+                diff_leaf(x.clone(), y.clone()).unwrap_or(Diff::Mod(left.clone(), right.clone()))
+            }
             (BCSTree::Node(a, x0, y0), BCSTree::Node(b, x1, y1)) => {
                 let dxx = diff(x0.clone(), x1.clone(), mem);
                 let dyy = diff(y0.clone(), y1.clone(), mem);
@@ -162,10 +166,11 @@ pub(crate) fn patch<'a>(
 ) -> Result<Rc<BCSTree<'a>>, PatchError<'a>> {
     match (t.as_ref(), d.as_ref()) {
         (_, Diff::Eps) => Ok(t),
-        (BCSTree::Leaf(x), Diff::RMod(t, r, txt)) => {
+        (BCSTree::Leaf(x), Diff::RMod(t, r, br, txt)) => {
             let nx = Data {
                 node_type: *t,
                 range: r.clone(),
+		byte_range: br.clone(),
                 text: txt,
                 named: x.named,
             };
@@ -369,7 +374,7 @@ mod test {
         let rcst = RCSTree::from(node, code);
         let bcst: Rc<BCSTree> = Rc::new(rcst.into());
 
-	let stred  = super::bcst_to_code(bcst);
+        let stred = super::bcst_to_code(bcst);
 
         assert_eq!(code, &stred)
     }
