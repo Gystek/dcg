@@ -138,7 +138,7 @@ pub(crate) fn serialise<'a>(d: Rc<Diff<'a>>, r: &mut Ranges, tr: &mut TextRanges
                 &if let Some(x) = tr.get(&(nr.clone(), br.clone(), ns)) {
                     *x
                 } else {
-                    tr.insert((nr.clone(), br.clone(), ns), r.len());
+                    tr.insert((nr.clone(), br.clone(), ns), tr.len());
                     tr.len() - 1
                 }
                 .to_le_bytes(),
@@ -158,8 +158,8 @@ pub(crate) fn serialise<'a>(d: Rc<Diff<'a>>, r: &mut Ranges, tr: &mut TextRanges
         Diff::Mod(from, to) => {
             let mut v = vec![3];
 
-            v.extend_from_slice(&serialise_tree(from.clone(), true, r, tr));
-            v.extend_from_slice(&serialise_tree(to.clone(), false, r, tr));
+            v.extend_from_slice(&serialise_tree(from.clone(), false, r, tr));
+            v.extend_from_slice(&serialise_tree(to.clone(), true, r, tr));
 
             v
         }
@@ -177,7 +177,7 @@ pub(crate) fn serialise<'a>(d: Rc<Diff<'a>>, r: &mut Ranges, tr: &mut TextRanges
             let mut v = vec![5];
 
             v.extend_from_slice(&m.node_type.map(|x| x + 1).unwrap_or(0).to_le_bytes());
-            v.extend_from_slice(&serialise_tree(t.clone(), false, r, tr));
+            v.extend_from_slice(&serialise_tree(t.clone(), true, r, tr));
             v.extend_from_slice(&serialise(d.clone(), r, tr));
 
             v
@@ -186,7 +186,7 @@ pub(crate) fn serialise<'a>(d: Rc<Diff<'a>>, r: &mut Ranges, tr: &mut TextRanges
             let mut v = vec![6];
 
             v.extend_from_slice(&m.node_type.map(|x| x + 1).unwrap_or(0).to_le_bytes());
-            v.extend_from_slice(&serialise_tree(t.clone(), false, r, tr));
+            v.extend_from_slice(&serialise_tree(t.clone(), true, r, tr));
             v.extend_from_slice(&serialise(d.clone(), r, tr));
 
             v
@@ -229,12 +229,7 @@ fn deserialise_tree<'a>(
             let nt = u16_to_nt(u16::from_le_bytes(b[1..3].try_into().unwrap()));
             let text = b[3] != 0;
             let rn = usize::from_le_bytes(b[4..4 + ADDR_BYTES].try_into().unwrap());
-            let brn = usize::from_le_bytes(
-                b[4 + ADDR_BYTES..4 + ADDR_BYTES + ADDR_BYTES]
-                    .try_into()
-                    .unwrap(),
-            );
-            let named = b[4 + ADDR_BYTES + ADDR_BYTES] != 0;
+            let named = b[4 + ADDR_BYTES] != 0;
 
             (
                 BCSTree::Leaf(Data {
@@ -252,7 +247,7 @@ fn deserialise_tree<'a>(
                     text: if text { tr[rn].2 } else { &t[r[rn].1.clone()] },
                     named,
                 }),
-                &b[4 + ADDR_BYTES + ADDR_BYTES + 1..],
+                &b[4 + ADDR_BYTES + 1..],
             )
         }
         1 => {
@@ -371,5 +366,63 @@ pub(crate) fn deserialise<'a>(
             (Diff::DelR(Rc::new(d)), b)
         }
         _ => unreachable!("badly serialised diff"),
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use tree_sitter::Parser;
+
+    use crate::backend::{bcst::{diff, BCSTree}, rcst::RCSTree};
+    use std::{collections::HashMap, rc::Rc};
+
+    use super::{deserialise, serialise, Ranges, TextRanges};
+
+    #[test]
+    fn conservation() {
+        let left = "pub fn foo() {\n  1\n}";
+        let right = "fn bar() {\n  baz(5); 'c'\n}";
+
+        let mut parser = Parser::new();
+
+        parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .unwrap();
+
+        let ltree = parser.parse(left, None).unwrap();
+        let lnode = ltree.root_node();
+
+        let rtree = parser.parse(right, None).unwrap();
+        let rnode = rtree.root_node();
+
+        let lrcst = RCSTree::from(lnode, left);
+        let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+
+        let rrcst = RCSTree::from(rnode, right);
+        let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+
+        let mut mem = HashMap::new();
+        let diff = diff(lbcst.clone(), rbcst.clone(), &mut mem);
+
+	let mut ranges = Ranges::new();
+	let mut tranges = TextRanges::new();
+
+	let ser = serialise(diff.clone(), &mut ranges, &mut tranges);
+
+	let mut vr = vec![((0, 0)..(0, 0), 0..0); ranges.len()];
+	let mut vtr = vec![((0, 0)..(0, 0), 0..0, ""); tranges.len()];
+
+	for (k, v) in ranges {
+	    vr[v] = k;
+	}
+
+	for (k, v) in tranges {
+	    vtr[v] = k;
+	}
+
+	let (de, _) = deserialise(&ser, left, &vr, &vtr);
+
+	assert_eq!(diff.as_ref(), &de)
     }
 }
