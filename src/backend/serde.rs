@@ -278,7 +278,10 @@ pub(crate) fn deserialise<'a>(
             let ri = usize::from_le_bytes(b[3..3 + ADDR_BYTES].try_into().unwrap());
             let (r, br, s) = tr.get(ri).unwrap();
 
-            (Diff::RMod(u16_to_nt(t), r.clone(), br.clone(), s), &b[3 + ADDR_BYTES..])
+            (
+                Diff::RMod(u16_to_nt(t), r.clone(), br.clone(), s),
+                &b[3 + ADDR_BYTES..],
+            )
         }
         2 => {
             let m = u16::from_le_bytes(b[1..3].try_into().unwrap());
@@ -369,12 +372,14 @@ pub(crate) fn deserialise<'a>(
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use tree_sitter::Parser;
 
-    use crate::backend::{bcst::{diff, BCSTree}, rcst::RCSTree};
+    use crate::backend::{
+        bcst::{diff, BCSTree},
+        rcst::RCSTree,
+    };
     use std::{collections::HashMap, rc::Rc};
 
     use super::{deserialise, serialise, Ranges, TextRanges};
@@ -405,24 +410,24 @@ mod test {
         let mut mem = HashMap::new();
         let diff = diff(lbcst.clone(), rbcst.clone(), &mut mem);
 
-	let mut ranges = Ranges::new();
-	let mut tranges = TextRanges::new();
+        let mut ranges = Ranges::new();
+        let mut tranges = TextRanges::new();
 
-	let ser = serialise(diff.clone(), &mut ranges, &mut tranges);
+        let ser = serialise(diff.clone(), &mut ranges, &mut tranges);
 
-	let mut vr = vec![((0, 0)..(0, 0), 0..0); ranges.len()];
-	let mut vtr = vec![((0, 0)..(0, 0), 0..0, ""); tranges.len()];
+        let mut vr = vec![((0, 0)..(0, 0), 0..0); ranges.len()];
+        let mut vtr = vec![((0, 0)..(0, 0), 0..0, ""); tranges.len()];
 
-	for (k, v) in ranges {
-	    vr[v] = k;
-	}
+        for (k, v) in ranges {
+            vr[v] = k;
+        }
 
-	for (k, v) in tranges {
-	    vtr[v] = k;
-	}
+        for (k, v) in tranges {
+            vtr[v] = k;
+        }
 
-	let (de, _) = deserialise(&ser, left, &vr, &vtr);
+        let (de, _) = deserialise(&ser, left, &vr, &vtr);
 
-	assert_eq!(diff.as_ref(), &de)
+        assert_eq!(diff.as_ref(), &de)
     }
 }

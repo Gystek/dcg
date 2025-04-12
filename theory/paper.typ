@@ -488,6 +488,8 @@ $
 	m(x, epsilon) &= x \
 	m(t_(epsilon i)(l, r), t_(epsilon i)(l', r'))
 	&= t_(epsilon i)(m(l, l'), m(r, r')) \
+	m(t_(mu i -> j)(l, r), t_(mu i -> j)(l', r'))
+	&= t_(mu i->j)(m(l, l'), m(r, r')) \
 	m(t_(epsilon i)(l, r), t_(mu i -> j)(l', r'))
 	&= t_(mu i->j)(m(l, l'), m(r, r')) \
 	m(t_(mu i -> j)(l', r'), t_(epsilon i)(l, r))

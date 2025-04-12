@@ -170,7 +170,7 @@ pub(crate) fn patch<'a>(
             let nx = Data {
                 node_type: *t,
                 range: r.clone(),
-		byte_range: br.clone(),
+                byte_range: br.clone(),
                 text: txt,
                 named: x.named,
             };
