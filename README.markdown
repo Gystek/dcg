@@ -13,7 +13,9 @@ Roadmap
   - [x] Extract data/metadata from `Node`s
   - [x] Formatting preservation
   - [x] IR serialisation
-  - [ ] Merge
+  - [x] Merge
+  - [ ] Diff optimisation
+  - [ ] Diff heuristics
 - [ ] Frontend
   - [ ] Diff pretty-printer
   - [ ] Git idk

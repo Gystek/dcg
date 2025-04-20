@@ -130,6 +130,7 @@ fn serialise_sertree(t: Rc<SerBCSTree>) -> Vec<u8> {
 pub(crate) fn serialise<'a>(d: Rc<Diff<'a>>, r: &mut Ranges, tr: &mut TextRanges<'a>) -> Vec<u8> {
     match d.as_ref() {
         Diff::Eps => vec![0],
+        Diff::Err(_) => unreachable!(),
         Diff::RMod(nt, nr, br, ns) => {
             let mut v = vec![1];
 

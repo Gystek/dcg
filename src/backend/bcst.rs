@@ -165,6 +165,7 @@ pub(crate) fn patch<'a>(
     d: Rc<Diff<'a>>,
 ) -> Result<Rc<BCSTree<'a>>, PatchError<'a>> {
     match (t.as_ref(), d.as_ref()) {
+        (_, Diff::Err(_)) => unreachable!(),
         (_, Diff::Eps) => Ok(t),
         (BCSTree::Leaf(x), Diff::RMod(t, r, br, txt)) => {
             let nx = Data {

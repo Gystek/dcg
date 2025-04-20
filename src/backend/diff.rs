@@ -1,10 +1,11 @@
 //! Tree differences datatype
-use crate::backend::{bcst::BCSTree, metadata::Metadata};
+use crate::backend::{bcst::BCSTree, merge::MergeConflict, metadata::Metadata};
 use std::{cmp::Ordering, ops::Range, rc::Rc};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Diff<'a> {
     Eps,
+    Err(MergeConflict<'a>), /* exclusively for internal use by the merge error handling algorithm */
     RMod(Option<u16>, Range<(usize, usize)>, Range<usize>, &'a str),
     TEps(Metadata, Rc<Diff<'a>>, Rc<Diff<'a>>),
     Mod(Rc<BCSTree<'a>>, Rc<BCSTree<'a>>),
@@ -19,6 +20,7 @@ impl Diff<'_> {
     pub(crate) fn weight(&self) -> usize {
         match self {
             Self::Eps => 0,
+            Self::Err(_) => 0,
             Self::RMod(_, _, _, _) => 0,
             Self::TEps(_, x, y) => x.weight() + y.weight(),
             Self::Mod(x, y) => 1 + x.size() + y.size(),
