@@ -15,9 +15,11 @@ Roadmap
   - [x] IR serialisation
   - [x] Merge
   - [ ] Diff optimisation
+	- [ ] ε-reduction
   - [ ] Diff heuristics
 - [ ] Frontend
   - [ ] Diff pretty-printer
+  - [ ] Merge conflict pretty-printer
   - [ ] Git idk
 
 Internals

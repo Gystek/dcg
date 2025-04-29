@@ -6,119 +6,201 @@ use std::rc::Rc;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct MergeConflict<'a>(pub(crate) Rc<Diff<'a>>, pub(crate) Rc<Diff<'a>>);
 
-fn extract_diff<'a>(ml: Result<Rc<Diff<'a>>, MergeConflict<'a>>) -> Rc<Diff<'a>> {
-    match ml {
-        Ok(x) => x,
-        Err(e) => Rc::new(Diff::Err(e)),
-    }
-}
-
 pub(crate) fn merge<'a>(
     left: Rc<Diff<'a>>,
     right: Rc<Diff<'a>>,
     conflicts: &mut Vec<MergeConflict<'a>>,
-) -> Result<Rc<Diff<'a>>, MergeConflict<'a>> {
+) -> Rc<Diff<'a>> {
     match (left.as_ref(), right.as_ref()) {
-        (Diff::Eps, _) => Ok(right),
-        (_, Diff::Eps) => Ok(left),
+        (Diff::Eps, _) => right,
+        (_, Diff::Eps) => left,
         (Diff::TEps(i1, l1, r1), Diff::TEps(i2, l2, r2)) if i1 == i2 => {
             let ml = merge(l1.clone(), l2.clone(), conflicts);
             let mr = merge(r1.clone(), r2.clone(), conflicts);
 
-            Ok(Rc::new(Diff::TEps(*i1, extract_diff(ml), extract_diff(mr))))
+            Rc::new(Diff::TEps(*i1, ml, mr))
         }
         (Diff::TMod(i1, j1, l1, r1), Diff::TMod(i2, j2, l2, r2)) if i1 == i2 && j1 == j2 => {
             let ml = merge(l1.clone(), l2.clone(), conflicts);
             let mr = merge(r1.clone(), r2.clone(), conflicts);
 
-            Ok(Rc::new(Diff::TMod(
-                *i1,
-                *j1,
-                extract_diff(ml),
-                extract_diff(mr),
-            )))
+            Rc::new(Diff::TMod(*i1, *j1, ml, mr))
         }
         (Diff::TEps(i1, l1, r1), Diff::TMod(i2, j, l2, r2)) if i1 == i2 => {
             let ml = merge(l1.clone(), l2.clone(), conflicts);
             let mr = merge(r1.clone(), r2.clone(), conflicts);
 
-            Ok(Rc::new(Diff::TMod(
-                *i1,
-                *j,
-                extract_diff(ml),
-                extract_diff(mr),
-            )))
+            Rc::new(Diff::TMod(*i1, *j, ml, mr))
         }
         (Diff::TMod(i2, j, l2, r2), Diff::TEps(i1, l1, r1)) if i1 == i2 => {
             let ml = merge(l1.clone(), l2.clone(), conflicts);
             let mr = merge(r1.clone(), r2.clone(), conflicts);
 
-            Ok(Rc::new(Diff::TMod(
-                *i1,
-                *j,
-                extract_diff(ml),
-                extract_diff(mr),
-            )))
+            Rc::new(Diff::TMod(*i1, *j, ml, mr))
         }
-        (Diff::TEps(_, _, _), Diff::AddL(j, t, d)) => Ok(Rc::new(Diff::AddL(
+        (Diff::TEps(_, _, _), Diff::AddL(j, t, d)) => Rc::new(Diff::AddL(
             *j,
             t.clone(),
-            merge(left.clone(), d.clone(), conflicts)?,
-        ))),
-        (Diff::TEps(_, _, _), Diff::AddR(j, d, t)) => Ok(Rc::new(Diff::AddR(
+            merge(left.clone(), d.clone(), conflicts),
+        )),
+        (Diff::TEps(_, _, _), Diff::AddR(j, d, t)) => Rc::new(Diff::AddR(
             *j,
-            merge(left.clone(), d.clone(), conflicts)?,
+            merge(left.clone(), d.clone(), conflicts),
             t.clone(),
-        ))),
-        (Diff::AddL(j, t, d), Diff::TEps(_, _, _)) => Ok(Rc::new(Diff::AddL(
+        )),
+        (Diff::AddL(j, t, d), Diff::TEps(_, _, _)) => Rc::new(Diff::AddL(
             *j,
             t.clone(),
-            merge(left.clone(), d.clone(), conflicts)?,
-        ))),
-        (Diff::AddR(j, d, t), Diff::TEps(_, _, _)) => Ok(Rc::new(Diff::AddR(
+            merge(left.clone(), d.clone(), conflicts),
+        )),
+        (Diff::AddR(j, d, t), Diff::TEps(_, _, _)) => Rc::new(Diff::AddR(
             *j,
-            merge(left.clone(), d.clone(), conflicts)?,
+            merge(left.clone(), d.clone(), conflicts),
             t.clone(),
-        ))),
+        )),
         (Diff::TEps(_, _, r), Diff::DelL(d)) => {
-            Ok(Rc::new(Diff::DelL(merge(r.clone(), d.clone(), conflicts)?)))
+            Rc::new(Diff::DelL(merge(r.clone(), d.clone(), conflicts)))
         }
         (Diff::TEps(_, l, _), Diff::DelR(d)) => {
-            Ok(Rc::new(Diff::DelR(merge(l.clone(), d.clone(), conflicts)?)))
+            Rc::new(Diff::DelR(merge(l.clone(), d.clone(), conflicts)))
         }
         (Diff::DelL(d), Diff::TEps(_, _, r)) => {
-            Ok(Rc::new(Diff::DelL(merge(r.clone(), d.clone(), conflicts)?)))
+            Rc::new(Diff::DelL(merge(r.clone(), d.clone(), conflicts)))
         }
         (Diff::DelR(d), Diff::TEps(_, l, _)) => {
-            Ok(Rc::new(Diff::DelR(merge(l.clone(), d.clone(), conflicts)?)))
+            Rc::new(Diff::DelR(merge(l.clone(), d.clone(), conflicts)))
         }
-        (Diff::AddL(i1, t1, d1), Diff::AddL(i2, t2, d2)) if i1 == i2 && t1 == t2 => Ok(Rc::new(
-            Diff::AddL(*i1, t1.clone(), merge(d1.clone(), d2.clone(), conflicts)?),
-        )),
-        (Diff::AddR(i1, d1, t1), Diff::AddR(i2, d2, t2)) if i1 == i2 && t1 == t2 => Ok(Rc::new(
-            Diff::AddR(*i1, merge(d1.clone(), d2.clone(), conflicts)?, t1.clone()),
-        )),
-        (Diff::DelL(d1), Diff::DelL(d2)) => Ok(Rc::new(Diff::DelL(merge(
-            d1.clone(),
-            d2.clone(),
-            conflicts,
-        )?))),
-        (Diff::DelR(d1), Diff::DelR(d2)) => Ok(Rc::new(Diff::DelR(merge(
-            d1.clone(),
-            d2.clone(),
-            conflicts,
-        )?))),
-        _ if left == right => Ok(left),
+        (Diff::AddL(i1, t1, d1), Diff::AddL(i2, t2, d2)) if i1 == i2 && t1 == t2 => Rc::new(
+            Diff::AddL(*i1, t1.clone(), merge(d1.clone(), d2.clone(), conflicts)),
+        ),
+        (Diff::AddR(i1, d1, t1), Diff::AddR(i2, d2, t2)) if i1 == i2 && t1 == t2 => Rc::new(
+            Diff::AddR(*i1, merge(d1.clone(), d2.clone(), conflicts), t1.clone()),
+        ),
+        (Diff::DelL(d1), Diff::DelL(d2)) => {
+            Rc::new(Diff::DelL(merge(d1.clone(), d2.clone(), conflicts)))
+        }
+        (Diff::DelR(d1), Diff::DelR(d2)) => {
+            Rc::new(Diff::DelR(merge(d1.clone(), d2.clone(), conflicts)))
+        }
+        _ if left == right => left,
         (Diff::Err(_), _) => unreachable!(),
         (_, Diff::Err(_)) => unreachable!(),
         _ => {
             let c = MergeConflict(left, right);
             conflicts.push(c.clone());
 
-            Err(c)
+            Rc::new(Diff::Err(c))
         }
     }
 }
 
 #[cfg(test)]
-mod test {}
+mod test {
+    use super::merge;
+    use crate::backend::{
+        bcst::{diff, BCSTree},
+        rcst::RCSTree,
+    };
+    use std::{collections::HashMap, rc::Rc};
+    use tree_sitter::Parser;
+
+    #[test]
+    fn merge0() {
+        let base = "pub fn foo() { 5 + 6 }";
+        let left = "pub fn foo() { 5 + 7 }";
+        let right = "pub fn foo() { 5 - 6 }";
+        let res = "pub fn foo() { 5 - 7 }";
+
+        let mut parser = Parser::new();
+
+        parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .unwrap();
+
+        let btree = parser.parse(base, None).unwrap();
+        let bnode = btree.root_node();
+
+        let ltree = parser.parse(left, None).unwrap();
+        let lnode = ltree.root_node();
+
+        let rtree = parser.parse(right, None).unwrap();
+        let rnode = rtree.root_node();
+
+        let stree = parser.parse(res, None).unwrap();
+        let snode = stree.root_node();
+
+        let brcst = RCSTree::from(bnode, base);
+        let bbcst: Rc<BCSTree> = Rc::new(brcst.into());
+
+        let lrcst = RCSTree::from(lnode, left);
+        let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+
+        let rrcst = RCSTree::from(rnode, right);
+        let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+
+        let srcst = RCSTree::from(snode, res);
+        let sbcst: Rc<BCSTree> = Rc::new(srcst.into());
+
+        let mut mem = HashMap::new();
+
+        let diff_bl = diff(bbcst.clone(), lbcst.clone(), &mut mem);
+        mem.clear();
+
+        let diff_br = diff(bbcst.clone(), rbcst.clone(), &mut mem);
+        mem.clear();
+
+        let diff_bs = diff(bbcst.clone(), sbcst.clone(), &mut mem);
+
+        let mut conflicts = Vec::new();
+
+        let diff_m = merge(diff_bl, diff_br, &mut conflicts);
+
+        assert!(conflicts.is_empty());
+
+        assert_eq!(diff_bs, diff_m);
+    }
+
+    #[test]
+    fn merge1() {
+        let base = "pub fn foo() { 5 + 6 }";
+        let left = "pub fn foo() { 5 + 7 }";
+        let right = "pub fn foo() { 5 + 8 }";
+
+        let mut parser = Parser::new();
+
+        parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .unwrap();
+
+        let btree = parser.parse(base, None).unwrap();
+        let bnode = btree.root_node();
+
+        let ltree = parser.parse(left, None).unwrap();
+        let lnode = ltree.root_node();
+
+        let rtree = parser.parse(right, None).unwrap();
+        let rnode = rtree.root_node();
+
+        let brcst = RCSTree::from(bnode, base);
+        let bbcst: Rc<BCSTree> = Rc::new(brcst.into());
+
+        let lrcst = RCSTree::from(lnode, left);
+        let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+
+        let rrcst = RCSTree::from(rnode, right);
+        let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+
+        let mut mem = HashMap::new();
+
+        let diff_bl = diff(bbcst.clone(), lbcst.clone(), &mut mem);
+        mem.clear();
+
+        let diff_br = diff(bbcst.clone(), rbcst.clone(), &mut mem);
+
+        let mut conflicts = Vec::new();
+
+        merge(diff_bl, diff_br, &mut conflicts);
+
+        assert_eq!(conflicts.len(), 1);
+    }
+}
