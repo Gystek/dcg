@@ -15,12 +15,17 @@ Roadmap
   - [x] IR serialisation
   - [x] Merge
   - [ ] Diff optimisation
-	- [ ] ε-reduction
-  - [ ] Diff heuristics
+	- [x] ε-reduction
+	- [ ] Diff heuristics
 - [ ] Frontend
   - [ ] Diff pretty-printer
   - [ ] Merge conflict pretty-printer
   - [ ] Git idk
+    - [ ] Linguist
+	- [ ] Diff storage
+		- [ ] Code files
+		- [ ] Plain text/unidentified files
+		- [ ] Binary files
 
 Internals
 ---------

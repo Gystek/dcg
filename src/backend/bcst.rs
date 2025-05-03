@@ -240,6 +240,8 @@ mod test {
 
     use std::{collections::HashMap, rc::Rc};
 
+    use crate::backend::diff::ered;
+
     use super::{diff, patch, BCSTree, RCSTree};
 
     #[test]
@@ -378,5 +380,75 @@ mod test {
         let stred = super::bcst_to_code(bcst);
 
         assert_eq!(code, &stred)
+    }
+
+    #[test]
+    fn ered0() {
+        let left = "pub fn foo() {\n  1\n}";
+        let right = "pub fn bar() {\n  1\n}";
+
+        let mut parser = Parser::new();
+
+        parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .unwrap();
+
+        let ltree = parser.parse(left, None).unwrap();
+        let lnode = ltree.root_node();
+
+        let rtree = parser.parse(right, None).unwrap();
+        let rnode = rtree.root_node();
+
+        let lrcst = RCSTree::from(lnode, left);
+        let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+
+        let rrcst = RCSTree::from(rnode, right);
+        let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+
+        let mut mem = HashMap::new();
+        let diff0 = diff(lbcst.clone(), rbcst.clone(), &mut mem);
+
+        let patch0 = patch(lbcst.clone(), diff0.clone()).unwrap();
+
+        let diff1 = ered(diff0);
+
+        let patch1 = patch(lbcst, diff1).unwrap();
+
+        assert_eq!(patch0, patch1)
+    }
+
+    #[test]
+    fn ered1() {
+        let left = "pub fn foo() {\n  1\n}";
+        let right = "pub fn foo() {\nlet x = 5;\n  3\n}";
+
+        let mut parser = Parser::new();
+
+        parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .unwrap();
+
+        let ltree = parser.parse(left, None).unwrap();
+        let lnode = ltree.root_node();
+
+        let rtree = parser.parse(right, None).unwrap();
+        let rnode = rtree.root_node();
+
+        let lrcst = RCSTree::from(lnode, left);
+        let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+
+        let rrcst = RCSTree::from(rnode, right);
+        let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+
+        let mut mem = HashMap::new();
+        let diff0 = diff(lbcst.clone(), rbcst.clone(), &mut mem);
+
+        let patch0 = patch(lbcst.clone(), diff0.clone()).unwrap();
+
+        let diff1 = ered(diff0);
+
+        let patch1 = patch(lbcst, diff1).unwrap();
+
+        assert_eq!(patch0, patch1)
     }
 }
