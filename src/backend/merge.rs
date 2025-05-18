@@ -3,7 +3,7 @@
 use crate::backend::diff::Diff;
 use std::rc::Rc;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub(crate) struct MergeConflict<'a>(pub(crate) Rc<Diff<'a>>, pub(crate) Rc<Diff<'a>>);
 
 pub(crate) fn merge<'a>(
@@ -98,10 +98,10 @@ pub(crate) fn merge<'a>(
 mod test {
     use super::merge;
     use crate::backend::{
-        bcst::{diff, BCSTree},
+        bcst::{diff_wrapper, BCSTree},
         rcst::RCSTree,
     };
-    use std::{collections::HashMap, rc::Rc};
+    use std::rc::Rc;
     use tree_sitter::Parser;
 
     #[test]
@@ -129,27 +129,27 @@ mod test {
         let stree = parser.parse(res, None).unwrap();
         let snode = stree.root_node();
 
-        let brcst = RCSTree::from(bnode, base);
-        let bbcst: Rc<BCSTree> = Rc::new(brcst.into());
+        let brcst = RCSTree::from(bnode, left);
+        let bbcst: (BCSTree, usize) = brcst.into();
+        let bbcst = (Rc::new(bbcst.0), bbcst.1);
 
         let lrcst = RCSTree::from(lnode, left);
-        let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+        let lbcst: (BCSTree, usize) = lrcst.into();
+        let lbcst = (Rc::new(lbcst.0), lbcst.1);
 
         let rrcst = RCSTree::from(rnode, right);
-        let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+        let rbcst: (BCSTree, usize) = rrcst.into();
+        let rbcst = (Rc::new(rbcst.0), rbcst.1);
 
-        let srcst = RCSTree::from(snode, res);
-        let sbcst: Rc<BCSTree> = Rc::new(srcst.into());
+        let srcst = RCSTree::from(snode, left);
+        let sbcst: (BCSTree, usize) = srcst.into();
+        let sbcst = (Rc::new(sbcst.0), sbcst.1);
 
-        let mut mem = HashMap::new();
+        let diff_bl = diff_wrapper(bbcst.clone(), lbcst.clone());
 
-        let diff_bl = diff(bbcst.clone(), lbcst.clone(), &mut mem);
-        mem.clear();
+        let diff_br = diff_wrapper(bbcst.clone(), rbcst.clone());
 
-        let diff_br = diff(bbcst.clone(), rbcst.clone(), &mut mem);
-        mem.clear();
-
-        let diff_bs = diff(bbcst.clone(), sbcst.clone(), &mut mem);
+        let diff_bs = diff_wrapper(bbcst.clone(), sbcst.clone());
 
         let mut conflicts = Vec::new();
 
@@ -181,21 +181,21 @@ mod test {
         let rtree = parser.parse(right, None).unwrap();
         let rnode = rtree.root_node();
 
-        let brcst = RCSTree::from(bnode, base);
-        let bbcst: Rc<BCSTree> = Rc::new(brcst.into());
+        let brcst = RCSTree::from(bnode, left);
+        let bbcst: (BCSTree, usize) = brcst.into();
+        let bbcst = (Rc::new(bbcst.0), bbcst.1);
 
         let lrcst = RCSTree::from(lnode, left);
-        let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+        let lbcst: (BCSTree, usize) = lrcst.into();
+        let lbcst = (Rc::new(lbcst.0), lbcst.1);
 
         let rrcst = RCSTree::from(rnode, right);
-        let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
+        let rbcst: (BCSTree, usize) = rrcst.into();
+        let rbcst = (Rc::new(rbcst.0), rbcst.1);
 
-        let mut mem = HashMap::new();
+        let diff_bl = diff_wrapper(bbcst.clone(), lbcst.clone());
 
-        let diff_bl = diff(bbcst.clone(), lbcst.clone(), &mut mem);
-        mem.clear();
-
-        let diff_br = diff(bbcst.clone(), rbcst.clone(), &mut mem);
+        let diff_br = diff_wrapper(bbcst.clone(), rbcst.clone());
 
         let mut conflicts = Vec::new();
 

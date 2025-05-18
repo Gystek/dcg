@@ -336,11 +336,12 @@ d(tau_i (x, y), tau_j (x', y')) &= cases(
     min_w (delta_epsilon, delta_(pi_tack.l),
     delta_(pi_tack.r), delta_(beta_tack.l),
     delta_(beta_tack.r)) "if" i = j,
-    min_w (delta_mu, delta_(pi_tack.l),
+    min_w (delta_mu, delta_(t mu), delta_(pi_tack.l),
     delta_(pi_tack.r), delta_(beta_tack.l),
     delta_(beta_tack.r)) "else"
 ) \
 "where" & delta_epsilon = t_(epsilon i) (d(x, x'), d(y, y')) \
+		& delta_(t mu) = t_(mu i -> j) (d(x, x'), d(y, y')) \
         & delta_mu = mu(tau_i (x, y), tau_j (x', y')) \
         & delta_(pi_tack.l) = pi_(tack.l j) (x', d(tau_i (x, y), y')) \
         & delta_(pi_tack.r) = pi_(tack.r j) (d(tau_i (x, y), x'), y') \
