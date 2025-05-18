@@ -1,5 +1,10 @@
 //! [de]serialise `Diff`s to binary
-use crate::backend::{bcst::BCSTree, data::Data, diff::Diff, metadata::Metadata};
+use crate::backend::{
+    bcst::{BCSTree, TWH},
+    data::Data,
+    diff::Diff,
+    metadata::Metadata,
+};
 
 use std::{collections::HashMap, ops::Range, rc::Rc};
 
@@ -20,10 +25,10 @@ struct SerData {
 #[derive(Hash, Clone, Debug, PartialEq, Eq)]
 enum SerBCSTree {
     Leaf(SerData),
-    Node(Metadata, Rc<SerBCSTree>, Rc<SerBCSTree>),
+    Node(Metadata, (Rc<SerBCSTree>, usize), (Rc<SerBCSTree>, usize)),
 }
 
-fn process_ranges(t: Rc<BCSTree<'_>>, r: &mut Ranges) {
+fn process_ranges((t, _): TWH<'_>, r: &mut Ranges) {
     match t.as_ref() {
         BCSTree::Leaf(d) => {
             if r.get(&(d.range.clone(), d.byte_range.clone())).is_none() {
@@ -37,7 +42,7 @@ fn process_ranges(t: Rc<BCSTree<'_>>, r: &mut Ranges) {
     }
 }
 
-fn process_text_ranges<'a>(t: Rc<BCSTree<'a>>, r: &mut TextRanges<'a>) {
+fn process_text_ranges<'a>((t, _): TWH<'a>, r: &mut TextRanges<'a>) {
     match t.as_ref() {
         BCSTree::Leaf(d) => {
             if r.get(&(d.range.clone(), d.byte_range.clone(), d.text))
@@ -56,48 +61,51 @@ fn process_text_ranges<'a>(t: Rc<BCSTree<'a>>, r: &mut TextRanges<'a>) {
 /*
  * practically limited to 65535 node types
  */
-fn serialise_tree<'a>(
-    t: Rc<BCSTree<'a>>,
-    text: bool,
-    r: &mut Ranges,
-    tr: &mut TextRanges<'a>,
-) -> Vec<u8> {
+fn serialise_tree<'a>(t: TWH<'a>, text: bool, r: &mut Ranges, tr: &mut TextRanges<'a>) -> Vec<u8> {
     if text {
         process_text_ranges(t.clone(), tr);
     } else {
         process_ranges(t.clone(), r);
     }
 
-    serialise_sertree(Rc::new(tree_to_sertree(t, text, r, tr)))
+    let (st, sth) = tree_to_sertree(t, text, r, tr);
+
+    serialise_sertree(Rc::new(st), sth)
 }
 
 fn tree_to_sertree<'a>(
-    t: Rc<BCSTree<'a>>,
+    (t, th): TWH<'a>,
     text: bool,
     r: &Ranges,
     tr: &TextRanges<'a>,
-) -> SerBCSTree {
+) -> (SerBCSTree, usize) {
     match t.as_ref() {
-        BCSTree::Leaf(d) => SerBCSTree::Leaf(SerData {
-            node_type: d.node_type.map(|x| x + 1).unwrap_or(0),
-            text,
-            range: *if text {
-                tr.get(&(d.range.clone(), d.byte_range.clone(), d.text))
-            } else {
-                r.get(&(d.range.clone(), d.byte_range.clone()))
-            }
-            .unwrap(),
-            named: d.named,
-        }),
-        BCSTree::Node(m, left, right) => SerBCSTree::Node(
-            *m,
-            Rc::new(tree_to_sertree(left.clone(), text, r, tr)),
-            Rc::new(tree_to_sertree(right.clone(), text, r, tr)),
+        BCSTree::Leaf(d) => (
+            SerBCSTree::Leaf(SerData {
+                node_type: d.node_type.map(|x| x + 1).unwrap_or(0),
+                text,
+                range: *if text {
+                    tr.get(&(d.range.clone(), d.byte_range.clone(), d.text))
+                } else {
+                    r.get(&(d.range.clone(), d.byte_range.clone()))
+                }
+                .unwrap(),
+                named: d.named,
+            }),
+            th,
         ),
+        BCSTree::Node(m, left, right) => {
+            let (sl, slh) = tree_to_sertree(left.clone(), text, r, tr);
+            let (sr, srh) = tree_to_sertree(right.clone(), text, r, tr);
+            (
+                SerBCSTree::Node(*m, (Rc::new(sl), slh), (Rc::new(sr), srh)),
+                th,
+            )
+        }
     }
 }
 
-fn serialise_sertree(t: Rc<SerBCSTree>) -> Vec<u8> {
+fn serialise_sertree(t: Rc<SerBCSTree>, th: usize) -> Vec<u8> {
     match t.as_ref() {
         SerBCSTree::Leaf(d) => {
             let mut v = vec![0];
@@ -109,12 +117,13 @@ fn serialise_sertree(t: Rc<SerBCSTree>) -> Vec<u8> {
 
             v
         }
-        SerBCSTree::Node(m, left, right) => {
+        SerBCSTree::Node(m, (left, lth), (right, rth)) => {
             let mut v = vec![1];
 
+            v.extend_from_slice(&th.to_le_bytes());
             v.extend_from_slice(&m.node_type.map(|x| x + 1).unwrap_or(0).to_le_bytes());
-            v.extend_from_slice(&serialise_sertree(left.clone()));
-            v.extend_from_slice(&serialise_sertree(right.clone()));
+            v.extend_from_slice(&serialise_sertree(left.clone(), *lth));
+            v.extend_from_slice(&serialise_sertree(right.clone(), *rth));
 
             v
         }
@@ -224,7 +233,7 @@ fn deserialise_tree<'a>(
     t: &'a str,
     r: &VecRanges,
     tr: &VecTextRanges<'a>,
-) -> (BCSTree<'a>, &'a [u8]) {
+) -> (TWH<'a>, &'a [u8]) {
     match b[0] {
         0 => {
             let nt = u16_to_nt(u16::from_le_bytes(b[1..3].try_into().unwrap()));
@@ -233,32 +242,41 @@ fn deserialise_tree<'a>(
             let named = b[4 + ADDR_BYTES] != 0;
 
             (
-                BCSTree::Leaf(Data {
-                    node_type: nt,
-                    range: if text {
-                        tr[rn].0.clone()
-                    } else {
-                        r[rn].0.clone()
-                    },
-                    byte_range: if text {
-                        tr[rn].1.clone()
-                    } else {
-                        r[rn].1.clone()
-                    },
-                    text: if text { tr[rn].2 } else { &t[r[rn].1.clone()] },
-                    named,
-                }),
+                (
+                    Rc::new(BCSTree::Leaf(Data {
+                        node_type: nt,
+                        range: if text {
+                            tr[rn].0.clone()
+                        } else {
+                            r[rn].0.clone()
+                        },
+                        byte_range: if text {
+                            tr[rn].1.clone()
+                        } else {
+                            r[rn].1.clone()
+                        },
+                        text: if text { tr[rn].2 } else { &t[r[rn].1.clone()] },
+                        named,
+                    })),
+                    0,
+                ),
                 &b[4 + ADDR_BYTES + 1..],
             )
         }
         1 => {
-            let m = u16_to_nt(u16::from_le_bytes(b[1..3].try_into().unwrap()));
+            let h = usize::from_le_bytes(b[1..1 + ADDR_BYTES].try_into().unwrap());
+            let m = u16_to_nt(u16::from_le_bytes(
+                b[1 + ADDR_BYTES..1 + ADDR_BYTES + 2].try_into().unwrap(),
+            ));
 
-            let (left, b) = deserialise_tree(&b[3..], t, r, tr);
+            let (left, b) = deserialise_tree(&b[1 + ADDR_BYTES + 2..], t, r, tr);
             let (right, b) = deserialise_tree(b, t, r, tr);
 
             (
-                BCSTree::Node(Metadata { node_type: m }, Rc::new(left), Rc::new(right)),
+                (
+                    Rc::new(BCSTree::Node(Metadata { node_type: m }, left, right)),
+                    h,
+                ),
                 b,
             )
         }
@@ -304,7 +322,7 @@ pub(crate) fn deserialise<'a>(
             let (from, b) = deserialise_tree(&b[1..], t, r, tr);
             let (to, b) = deserialise_tree(b, t, r, tr);
 
-            (Diff::Mod(Rc::new(from), Rc::new(to)), b)
+            (Diff::Mod(from, to), b)
         }
         4 => {
             let from = u16::from_le_bytes(b[1..3].try_into().unwrap());
@@ -337,7 +355,7 @@ pub(crate) fn deserialise<'a>(
                     Metadata {
                         node_type: u16_to_nt(m),
                     },
-                    Rc::new(tree),
+                    tree,
                     Rc::new(d),
                 ),
                 b,
@@ -354,7 +372,7 @@ pub(crate) fn deserialise<'a>(
                         node_type: u16_to_nt(m),
                     },
                     Rc::new(d),
-                    Rc::new(tree),
+                    tree,
                 ),
                 b,
             )
@@ -378,10 +396,10 @@ mod test {
     use tree_sitter::Parser;
 
     use crate::backend::{
-        bcst::{diff, BCSTree},
+        bcst::{diff_wrapper, BCSTree},
         rcst::RCSTree,
     };
-    use std::{collections::HashMap, rc::Rc};
+    use std::rc::Rc;
 
     use super::{deserialise, serialise, Ranges, TextRanges};
 
@@ -402,14 +420,15 @@ mod test {
         let rtree = parser.parse(right, None).unwrap();
         let rnode = rtree.root_node();
 
+        let rrcst = RCSTree::from(rnode, left);
+        let rbcst: (BCSTree, usize) = rrcst.into();
+        let rbcst = (Rc::new(rbcst.0), rbcst.1);
+
         let lrcst = RCSTree::from(lnode, left);
-        let lbcst: Rc<BCSTree> = Rc::new(lrcst.into());
+        let lbcst: (BCSTree, usize) = lrcst.into();
+        let lbcst = (Rc::new(lbcst.0), lbcst.1);
 
-        let rrcst = RCSTree::from(rnode, right);
-        let rbcst: Rc<BCSTree> = Rc::new(rrcst.into());
-
-        let mut mem = HashMap::new();
-        let diff = diff(lbcst.clone(), rbcst.clone(), &mut mem);
+        let diff = diff_wrapper(lbcst.clone(), rbcst.clone());
 
         let mut ranges = Ranges::new();
         let mut tranges = TextRanges::new();

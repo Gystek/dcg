@@ -17,6 +17,7 @@ Roadmap
   - [ ] Diff optimisation
 	- [x] ε-reduction
 	- [ ] Diff heuristics
+  - [ ] Custom parsers
 - [ ] Frontend
   - [ ] Diff pretty-printer
   - [ ] Merge conflict pretty-printer
@@ -26,6 +27,7 @@ Roadmap
 		- [ ] Code files
 		- [ ] Plain text/unidentified files
 		- [ ] Binary files
+  - [ ] User manual
 
 Internals
 ---------
