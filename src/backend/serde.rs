@@ -1,6 +1,6 @@
 //! [de]serialise `Diff`s to binary
 use crate::backend::{
-    bcst::{BCSTree, TWH},
+    bcst::{BCSTree, Twh},
     data::Data,
     diff::Diff,
     metadata::Metadata,
@@ -28,7 +28,7 @@ enum SerBCSTree {
     Node(Metadata, (Rc<SerBCSTree>, usize), (Rc<SerBCSTree>, usize)),
 }
 
-fn process_ranges((t, _): TWH<'_>, r: &mut Ranges) {
+fn process_ranges((t, _): Twh<'_>, r: &mut Ranges) {
     match t.as_ref() {
         BCSTree::Leaf(d) => {
             if r.get(&(d.range.clone(), d.byte_range.clone())).is_none() {
@@ -42,7 +42,7 @@ fn process_ranges((t, _): TWH<'_>, r: &mut Ranges) {
     }
 }
 
-fn process_text_ranges<'a>((t, _): TWH<'a>, r: &mut TextRanges<'a>) {
+fn process_text_ranges<'a>((t, _): Twh<'a>, r: &mut TextRanges<'a>) {
     match t.as_ref() {
         BCSTree::Leaf(d) => {
             if r.get(&(d.range.clone(), d.byte_range.clone(), d.text))
@@ -61,7 +61,7 @@ fn process_text_ranges<'a>((t, _): TWH<'a>, r: &mut TextRanges<'a>) {
 /*
  * practically limited to 65535 node types
  */
-fn serialise_tree<'a>(t: TWH<'a>, text: bool, r: &mut Ranges, tr: &mut TextRanges<'a>) -> Vec<u8> {
+fn serialise_tree<'a>(t: Twh<'a>, text: bool, r: &mut Ranges, tr: &mut TextRanges<'a>) -> Vec<u8> {
     if text {
         process_text_ranges(t.clone(), tr);
     } else {
@@ -74,7 +74,7 @@ fn serialise_tree<'a>(t: TWH<'a>, text: bool, r: &mut Ranges, tr: &mut TextRange
 }
 
 fn tree_to_sertree<'a>(
-    (t, th): TWH<'a>,
+    (t, th): Twh<'a>,
     text: bool,
     r: &Ranges,
     tr: &TextRanges<'a>,
@@ -233,7 +233,7 @@ fn deserialise_tree<'a>(
     t: &'a str,
     r: &VecRanges,
     tr: &VecTextRanges<'a>,
-) -> (TWH<'a>, &'a [u8]) {
+) -> (Twh<'a>, &'a [u8]) {
     match b[0] {
         0 => {
             let nt = u16_to_nt(u16::from_le_bytes(b[1..3].try_into().unwrap()));

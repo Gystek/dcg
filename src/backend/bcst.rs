@@ -14,12 +14,12 @@ use std::{
 };
 
 /* Tree With Height - to avoid redundant calculations */
-pub(crate) type TWH<'a> = (Rc<BCSTree<'a>>, usize);
+pub(crate) type Twh<'a> = (Rc<BCSTree<'a>>, usize);
 
 #[derive(Hash, Clone, Debug, PartialEq, Eq)]
 pub(crate) enum BCSTree<'a> {
     Leaf(Data<'a>),
-    Node(Metadata, TWH<'a>, TWH<'a>),
+    Node(Metadata, Twh<'a>, Twh<'a>),
 }
 
 impl<'a> Ord for BCSTree<'a> {
@@ -105,11 +105,11 @@ pub(crate) enum FlatDiff {
 #[derive(Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum GraphDiffValue<'a> {
     Final(Rc<Diff<'a>>),
-    Next(TWH<'a>, TWH<'a>),
-    NextLR((TWH<'a>, TWH<'a>), (TWH<'a>, TWH<'a>)),
+    Next(Twh<'a>, Twh<'a>),
+    NextLR((Twh<'a>, Twh<'a>), (Twh<'a>, Twh<'a>)),
 }
 
-pub(crate) type GDV<'a> = GraphDiffValue<'a>;
+pub(crate) type Gdv<'a> = GraphDiffValue<'a>;
 
 #[derive(Clone, Hash, Debug, PartialEq, Eq)]
 pub(crate) struct GraphDiff<'a>(pub(crate) FlatDiff, pub(crate) GraphDiffValue<'a>);
@@ -130,11 +130,11 @@ fn diff_leaf<'a>(x: Data<'a>, y: Data<'a>) -> Option<GraphDiff<'a>> {
     match (x.named, y.named) {
         (false, false) => {
             if y.node_type == x.node_type && y.range == x.range && y.text == x.text {
-                Some(GraphDiff(FlatDiff::Eps, GDV::Final(Rc::new(Diff::Eps))))
+                Some(GraphDiff(FlatDiff::Eps, Gdv::Final(Rc::new(Diff::Eps))))
             } else {
                 Some(GraphDiff(
                     FlatDiff::Mod,
-                    GDV::Final(Rc::new(Diff::RMod(
+                    Gdv::Final(Rc::new(Diff::RMod(
                         y.node_type,
                         y.range,
                         y.byte_range,
@@ -149,7 +149,7 @@ fn diff_leaf<'a>(x: Data<'a>, y: Data<'a>) -> Option<GraphDiff<'a>> {
             } else if x.range != y.range || x.text != y.text {
                 Some(GraphDiff(
                     FlatDiff::RMod,
-                    GDV::Final(Rc::new(Diff::RMod(
+                    Gdv::Final(Rc::new(Diff::RMod(
                         y.node_type,
                         y.range,
                         y.byte_range,
@@ -157,7 +157,7 @@ fn diff_leaf<'a>(x: Data<'a>, y: Data<'a>) -> Option<GraphDiff<'a>> {
                     ))),
                 ))
             } else {
-                Some(GraphDiff(FlatDiff::Eps, GDV::Final(Rc::new(Diff::Eps))))
+                Some(GraphDiff(FlatDiff::Eps, Gdv::Final(Rc::new(Diff::Eps))))
             }
         }
         _ => None,
@@ -165,39 +165,75 @@ fn diff_leaf<'a>(x: Data<'a>, y: Data<'a>) -> Option<GraphDiff<'a>> {
 }
 
 /// A* heuristic
-fn h((_, lh): &TWH<'_>, (_, rh): &TWH<'_>) -> usize {
+fn h((_, lh): &Twh<'_>, (_, rh): &Twh<'_>) -> usize {
     (*lh).min(*rh)
 }
 
 fn hgd(gd: &GraphDiff<'_>) -> usize {
     match gd {
-        GraphDiff(_, GDV::Final(_)) => 0,
-        GraphDiff(_, GDV::Next(left, right)) => h(left, right),
-        GraphDiff(_, GDV::NextLR((left0, right0), (left1, right1))) => {
+        GraphDiff(_, Gdv::Final(_)) => 0,
+        GraphDiff(_, Gdv::Next(left, right)) => h(left, right),
+        GraphDiff(_, Gdv::NextLR((left0, right0), (left1, right1))) => {
             h(left0, right0).min(h(left1, right1))
         }
     }
 }
 
 fn cost(gd: &GraphDiff<'_>) -> usize {
-    todo!()
+    /* analog to Diff::weight, without *diff* children */
+    match gd.0 {
+	FlatDiff::Eps | FlatDiff::TEps(_) | FlatDiff::RMod | FlatDiff::Start  => 0,
+	/* we logically want `mod`s to have the largest possible value,
+	 * so that they are picked last by A*.
+	 */
+	FlatDiff::Mod => match &gd.1 {
+	    Gdv::Final(d) => match d.as_ref() {
+		Diff::Mod((_, lh), (_, rh)) => *lh + *rh,
+		_ => unreachable!(),
+	    }
+	    _ => unreachable!(),
+	}
+	/* we don't do the same for AddL and AddR, because the only
+	 * thing we want to test before it is TEps/TMod, which is 0-cost.
+	 */
+	_ => 1,
+    }
 }
 
 fn reconstruct_diff<'a>(
     d: Rc<Diff<'a>>,
-    gd: GraphDiff<'a>,
-    parents: &HashMap<GraphDiff<'a>, GraphDiff<'a>>,
+    gd: Rc<GraphDiff<'a>>,
+    parents: &HashMap<Rc<GraphDiff<'a>>, Rc<GraphDiff<'a>>>,
 ) -> Rc<Diff<'a>> {
-    todo!()
+    let GraphDiff(fd, pg) = &parents[&gd].as_ref();
+
+    if *fd == FlatDiff::Start {
+	return d;
+    }
+
+    if let Gdv::Next(left, right) = pg {
+	let nd = match *fd {
+	    FlatDiff::AddL(m) => Diff::AddL(m, left.clone(), d),
+	    FlatDiff::AddR(m) => Diff::AddR(m, d, right.clone()),
+	    FlatDiff::DelL => Diff::DelL(d),
+	    FlatDiff::DelR => Diff::DelR(d),
+	    _ => unreachable!(),
+	};
+
+	return reconstruct_diff(Rc::new(nd), parents[&gd].clone(), parents);
+    }
+
+    unreachable!();
+
 }
 
-pub(crate) fn diff_wrapper<'a>(left: TWH<'a>, right: TWH<'a>) -> Rc<Diff<'a>> {
+pub(crate) fn diff_wrapper<'a>(left: Twh<'a>, right: Twh<'a>) -> Rc<Diff<'a>> {
     let mut parents = HashMap::new();
     let mut heap = BinaryHeap::new();
 
     let max_cost = left.1 + right.1;
 
-    heap.push((max_cost, GraphDiff(FlatDiff::Start, GDV::Next(left, right))));
+    heap.push((max_cost, Rc::new(GraphDiff(FlatDiff::Start, Gdv::Next(left, right)))));
 
     diff(max_cost, &mut parents, &mut heap)
 }
@@ -208,24 +244,24 @@ fn diff<'a>(
      * before first calling the function.
      */
     max_cost: usize,
-    parents: &mut HashMap<GraphDiff<'a>, GraphDiff<'a>>,
+    parents: &mut HashMap<Rc<GraphDiff<'a>>, Rc<GraphDiff<'a>>>,
     /* first `usize` is the MAX_COST - cost of the node, as BinaryHeap
      * is a max-heap.
      */
-    heap: &mut BinaryHeap<(usize, GraphDiff<'a>)>,
+    heap: &mut BinaryHeap<(usize, Rc<GraphDiff<'a>>)>,
 ) -> Rc<Diff<'a>> {
     while let Some((mf, gd)) = heap.pop() {
         let f = max_cost - mf;
         let g = f - hgd(&gd);
 
-        match gd {
-            GraphDiff(_, GDV::Final(ref d)) => return reconstruct_diff(d.clone(), gd, parents),
-            GraphDiff(fd, GDV::Next((ref left, lh), (ref right, rh))) => {
+        match gd.as_ref() {
+            GraphDiff(_, Gdv::Final(ref d)) => return reconstruct_diff(d.clone(), gd, parents),
+            GraphDiff(_, Gdv::Next((ref left, lh), (ref right, rh))) => {
                 let neighbours = match (left.as_ref(), right.as_ref()) {
                     (BCSTree::Leaf(x), BCSTree::Leaf(y)) => {
                         vec![diff_leaf(x.clone(), y.clone()).unwrap_or(GraphDiff(
                             FlatDiff::Mod,
-                            GDV::Final(Rc::new(Diff::Mod((left.clone(), lh), (right.clone(), rh)))),
+                            Gdv::Final(Rc::new(Diff::Mod((left.clone(), *lh), (right.clone(), *rh)))),
                         ))]
                     }
                     (
@@ -235,23 +271,23 @@ fn diff<'a>(
                         let mut cn = vec![
                             GraphDiff(
                                 FlatDiff::AddL(*b),
-                                GDV::Next((left.clone(), lh), (y1.clone(), *y1h)),
+                                Gdv::Next((left.clone(), *lh), (y1.clone(), *y1h)),
                             ),
                             GraphDiff(
                                 FlatDiff::AddR(*b),
-                                GDV::Next((left.clone(), lh), (x1.clone(), *x1h)),
+                                Gdv::Next((left.clone(), *lh), (x1.clone(), *x1h)),
                             ),
                             GraphDiff(
                                 FlatDiff::DelL,
-                                GDV::Next((y0.clone(), *y0h), (right.clone(), rh)),
+                                Gdv::Next((y0.clone(), *y0h), (right.clone(), *rh)),
                             ),
                             GraphDiff(
                                 FlatDiff::DelR,
-                                GDV::Next((x0.clone(), *x0h), (right.clone(), rh)),
+                                Gdv::Next((x0.clone(), *x0h), (right.clone(), *rh)),
                             ),
                         ];
 
-                        let double = GDV::NextLR(
+                        let double = Gdv::NextLR(
                             ((x0.clone(), *x0h), (x1.clone(), *x1h)),
                             ((y0.clone(), *y0h), (y1.clone(), *y1h)),
                         );
@@ -262,9 +298,9 @@ fn diff<'a>(
                             cn.push(GraphDiff(FlatDiff::TMod(*a, *b), double));
                             cn.push(GraphDiff(
                                 FlatDiff::Mod,
-                                GDV::Final(Rc::new(Diff::Mod(
-                                    (left.clone(), lh),
-                                    (right.clone(), rh),
+                                Gdv::Final(Rc::new(Diff::Mod(
+                                    (left.clone(), *lh),
+                                    (right.clone(), *rh),
                                 ))),
                             ));
                         }
@@ -275,26 +311,26 @@ fn diff<'a>(
                         vec![
                             GraphDiff(
                                 FlatDiff::Mod,
-                                GDV::Final(Rc::new(Diff::Mod(
-                                    (left.clone(), lh),
-                                    (right.clone(), rh),
+                                Gdv::Final(Rc::new(Diff::Mod(
+                                    (left.clone(), *lh),
+                                    (right.clone(), *rh),
                                 ))),
                             ),
-                            GraphDiff(FlatDiff::AddL(*t), GDV::Next((left.clone(), lh), y.clone())),
-                            GraphDiff(FlatDiff::AddR(*t), GDV::Next((left.clone(), lh), x.clone())),
+                            GraphDiff(FlatDiff::AddL(*t), Gdv::Next((left.clone(), *lh), y.clone())),
+                            GraphDiff(FlatDiff::AddR(*t), Gdv::Next((left.clone(), *lh), x.clone())),
                         ]
                     }
                     (BCSTree::Node(_, x, y), BCSTree::Leaf(_)) => {
                         vec![
                             GraphDiff(
                                 FlatDiff::Mod,
-                                GDV::Final(Rc::new(Diff::Mod(
-                                    (left.clone(), lh),
-                                    (right.clone(), rh),
+                                Gdv::Final(Rc::new(Diff::Mod(
+                                    (left.clone(), *lh),
+                                    (right.clone(), *rh),
                                 ))),
                             ),
-                            GraphDiff(FlatDiff::DelL, GDV::Next(y.clone(), (right.clone(), rh))),
-                            GraphDiff(FlatDiff::DelR, GDV::Next(x.clone(), (right.clone(), rh))),
+                            GraphDiff(FlatDiff::DelL, Gdv::Next(y.clone(), (right.clone(), *rh))),
+                            GraphDiff(FlatDiff::DelR, Gdv::Next(x.clone(), (right.clone(), *rh))),
                         ]
                     }
                 };
@@ -302,45 +338,47 @@ fn diff<'a>(
                 for neighbour in neighbours {
                     let ng = g + cost(&neighbour);
 
-                    if ng < g {
-                        parents.insert(neighbour.clone(), gd.clone());
+		    let rn = Rc::new(neighbour);
 
-                        let nf = f + hgd(&neighbour);
+                    if ng < g {
+                        parents.insert(rn.clone(), gd.clone());
+
+                        let nf = f + hgd(rn.as_ref());
                         let nmf = max_cost - nf;
 
-                        heap.push((nmf, neighbour));
+                        heap.push((nmf, rn));
                     }
                 }
             }
             GraphDiff(
                 fd,
-                GDV::NextLR(((ref l0, l0h), (ref r0, r0h)), ((ref l1, l1h), (ref r1, r1h))),
+                Gdv::NextLR(((ref l0, l0h), (ref r0, r0h)), ((ref l1, l1h), (ref r1, r1h))),
             ) => {
                 let mut th = BinaryHeap::new();
                 let max_cost = l0h + r0h;
 
                 th.push((
                     max_cost,
-                    GraphDiff(
+                    Rc::new(GraphDiff(
                         FlatDiff::Start,
-                        GDV::Next((l0.clone(), l0h), (r0.clone(), r0h)),
-                    ),
+                        Gdv::Next((l0.clone(), *l0h), (r0.clone(), *r0h)),
+                    )),
                 ));
                 let dl = diff(max_cost, parents, &mut th);
 
                 th.clear();
                 th.push((
                     max_cost,
-                    GraphDiff(
+                    Rc::new(GraphDiff(
                         FlatDiff::Start,
-                        GDV::Next((l1.clone(), l1h), (r1.clone(), r1h)),
-                    ),
+                        Gdv::Next((l1.clone(), *l1h), (r1.clone(), *r1h)),
+                    )),
                 ));
                 let dr = diff(max_cost, parents, &mut th);
 
                 let d = Rc::new(match fd {
-                    FlatDiff::TEps(m) => Diff::TEps(m, dl, dr),
-                    FlatDiff::TMod(a, b) => Diff::TMod(a, b, dl, dr),
+                    FlatDiff::TEps(m) => Diff::TEps(*m, dl, dr),
+                    FlatDiff::TMod(a, b) => Diff::TMod(*a, *b, dl, dr),
                     _ => unreachable!(),
                 });
 
@@ -352,7 +390,7 @@ fn diff<'a>(
     unreachable!()
 }
 
-pub(crate) fn patch<'a>((t, th): TWH<'a>, d: Rc<Diff<'a>>) -> Result<TWH<'a>, PatchError<'a>> {
+pub(crate) fn patch<'a>((t, th): Twh<'a>, d: Rc<Diff<'a>>) -> Result<Twh<'a>, PatchError<'a>> {
     match (t.as_ref(), d.as_ref()) {
         (_, Diff::Err(_)) => unreachable!(),
         (_, Diff::Eps) => Ok((t, th)),

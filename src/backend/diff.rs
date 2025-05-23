@@ -1,5 +1,5 @@
 //! Tree differences datatype
-use crate::backend::{bcst::TWH, merge::MergeConflict, metadata::Metadata};
+use crate::backend::{bcst::Twh, merge::MergeConflict, metadata::Metadata};
 use std::{cmp::Ordering, ops::Range, rc::Rc};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -8,20 +8,17 @@ pub(crate) enum Diff<'a> {
     Err(MergeConflict<'a>), /* exclusively for internal use by the merge error handling algorithm */
     RMod(Option<u16>, Range<(usize, usize)>, Range<usize>, &'a str),
     TEps(Metadata, Rc<Diff<'a>>, Rc<Diff<'a>>),
-    Mod(TWH<'a>, TWH<'a>),
+    Mod(Twh<'a>, Twh<'a>),
     TMod(Metadata, Metadata, Rc<Diff<'a>>, Rc<Diff<'a>>),
-    AddL(Metadata, TWH<'a>, Rc<Diff<'a>>),
-    AddR(Metadata, Rc<Diff<'a>>, TWH<'a>),
+    AddL(Metadata, Twh<'a>, Rc<Diff<'a>>),
+    AddR(Metadata, Rc<Diff<'a>>, Twh<'a>),
     DelL(Rc<Diff<'a>>),
     DelR(Rc<Diff<'a>>),
 }
 
 impl Diff<'_> {
     pub(crate) fn is_eps(&self) -> bool {
-        match self {
-            Diff::Eps => true,
-            _ => false,
-        }
+	self == &Diff::Eps
     }
     pub(crate) fn weight(&self) -> usize {
         match self {
