@@ -211,10 +211,18 @@ fn reconstruct_diff<'a>(
         return d;
     }
 
-    if let Gdv::Next(left, right) = pg {
+    if let Gdv::Next(_, right) = pg {
         let nd = match *fd {
-            FlatDiff::AddL(m) => Diff::AddL(m, left.clone(), d),
-            FlatDiff::AddR(m) => Diff::AddR(m, d, right.clone()),
+            FlatDiff::AddL(m) => if let BCSTree::Node(_, x1, _) = right.0.as_ref() {
+		Diff::AddL(m, x1.clone(), d)
+	    } else {
+		unreachable!("impossible structure for AddL right parent: {:?}", right);
+	    }
+            FlatDiff::AddR(m) => if let BCSTree::Node(_, _, y1) = right.0.as_ref() {
+		Diff::AddR(m, d, y1.clone())
+	    } else {
+		unreachable!("impossible structure for AddR right parent: {:?}", right);
+	    }
             FlatDiff::DelL => Diff::DelL(d),
             FlatDiff::DelR => Diff::DelR(d),
             _ => unreachable!(),
@@ -606,6 +614,8 @@ mod test {
         let rrcst = RCSTree::from(rnode, right);
         let rbcst: (BCSTree, usize) = rrcst.into();
         let rbcst = (Rc::new(rbcst.0), rbcst.1);
+
+	println!("{:#?}", lbcst);
 
         let diff = diff_wrapper(lbcst.clone(), rbcst.clone());
 
