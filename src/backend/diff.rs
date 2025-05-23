@@ -18,7 +18,7 @@ pub(crate) enum Diff<'a> {
 
 impl Diff<'_> {
     pub(crate) fn is_eps(&self) -> bool {
-	self == &Diff::Eps
+        self == &Diff::Eps
     }
     pub(crate) fn weight(&self) -> usize {
         match self {
