@@ -98,7 +98,7 @@ pub(crate) fn merge<'a>(
 mod test {
     use super::merge;
     use crate::backend::{
-        bcst::{diff_wrapper, BCSTree},
+        bcst::{bcst_to_code, diff_wrapper, patch, BCSTree},
         rcst::RCSTree,
     };
     use std::rc::Rc;
@@ -153,9 +153,20 @@ mod test {
 
         let mut conflicts = Vec::new();
 
+	println!("{:#?}", diff_bl);
+	println!("{:#?}", diff_br);
+
         let diff_m = merge(diff_bl, diff_br, &mut conflicts);
 
         assert!(conflicts.is_empty());
+
+	println!("{:#?}", diff_bs);
+	println!("{:#?}", diff_m);
+
+	let nms = patch(bbcst.clone(), diff_m.clone()).unwrap();
+	let nmst = bcst_to_code(nms.0);
+
+	println!("{}", nmst);
 
         assert_eq!(diff_bs, diff_m);
     }

@@ -127,6 +127,7 @@ impl<'a> PartialOrd for GraphDiff<'a> {
 }
 
 fn diff_leaf<'a>(x: Data<'a>, y: Data<'a>) -> Option<GraphDiff<'a>> {
+    println!("{:?} ; {:?}", x, y);
     match (x.named, y.named) {
         (false, false) => {
             if y.node_type == x.node_type && y.range == x.range && y.text == x.text {
@@ -205,24 +206,42 @@ fn reconstruct_diff<'a>(
     gd: Rc<GraphDiff<'a>>,
     parents: &HashMap<Rc<GraphDiff<'a>>, Rc<GraphDiff<'a>>>,
 ) -> Rc<Diff<'a>> {
-    let GraphDiff(fd, pg) = &parents[&gd].as_ref();
+    let ngd = parents[&gd].as_ref();
+    let GraphDiff(fd, pg) = ngd;
 
     if *fd == FlatDiff::Start {
         return d;
     }
 
-    if let Gdv::Next(_, right) = pg {
+    if let Gdv::Next(_, _) = pg {
         let nd = match *fd {
-            FlatDiff::AddL(m) => if let BCSTree::Node(_, x1, _) = right.0.as_ref() {
-		Diff::AddL(m, x1.clone(), d)
-	    } else {
-		unreachable!("impossible structure for AddL right parent: {:?}", right);
-	    }
-            FlatDiff::AddR(m) => if let BCSTree::Node(_, _, y1) = right.0.as_ref() {
-		Diff::AddR(m, d, y1.clone())
-	    } else {
-		unreachable!("impossible structure for AddR right parent: {:?}", right);
-	    }
+            FlatDiff::AddL(m) => {
+                if let GraphDiff(_, Gdv::Next(_, right)) = &parents[ngd].as_ref() {
+		    if let BCSTree::Node(_, x1, _) = right.0.as_ref() {
+			Diff::AddL(m, x1.clone(), d)
+                    } else {
+			unreachable!("impossible structure for AddL right parent: {:?}", right);
+		    }
+		} else {
+		    unreachable!("previous diff is not Next for AddL: {:?}", &parents[ngd].as_ref());
+                }
+            }
+            FlatDiff::AddR(m) => {
+		if let GraphDiff(_, Gdv::Next(_, right)) = &parents[ngd].as_ref() {
+		    if let BCSTree::Node(_, _, y1) = right.0.as_ref() {
+			Diff::AddR(m, d, y1.clone())
+                    } else {
+			unreachable!("impossible structure for AddR right parent: {:?}", right);
+		    }
+		} else {
+		    unreachable!("previous diff is not Next for AddR: {:?}", &parents[ngd].as_ref());
+                }
+                // if let BCSTree::Node(_, _, y1) = right.0.as_ref() {
+                //     Diff::AddR(m, d, y1.clone())
+                // } else {
+                //     unreachable!("impossible structure for AddR right parent: {:?}", right);
+                // }
+            }
             FlatDiff::DelL => Diff::DelL(d),
             FlatDiff::DelR => Diff::DelR(d),
             _ => unreachable!(),
@@ -254,11 +273,40 @@ fn diff<'a>(
     g_scores: &mut HashMap<Rc<GraphDiff<'a>>, usize>,
 ) -> Rc<Diff<'a>> {
     while let Some(Reverse((f, gd))) = heap.pop() {
-	let g = g_scores[&gd];
+        let g = g_scores[&gd];
+
+        println!("f(x) = {} ; g(x) = {}", f, g);
+
+        print!(
+            "{}",
+            match gd.as_ref().1 {
+                Gdv::Final(_) => "final",
+                Gdv::Next(_, _) => "next",
+                Gdv::NextLR(_, _) => "nextLR",
+            }
+        );
+
+        println!(": {:?} [{}]", gd.as_ref().0, heap.len());
 
         match gd.as_ref() {
             GraphDiff(_, Gdv::Final(ref d)) => return reconstruct_diff(d.clone(), gd, parents),
             GraphDiff(_, Gdv::Next((ref left, lh), (ref right, rh))) => {
+                println!(
+                    "--left: {}",
+                    match left.as_ref() {
+                        BCSTree::Leaf(_) => "leaf",
+                        BCSTree::Node(_, _, _) => "node",
+                    }
+                );
+
+                println!(
+                    "--right: {}",
+                    match right.as_ref() {
+                        BCSTree::Leaf(_) => "leaf",
+                        BCSTree::Node(_, _, _) => "node",
+                    }
+                );
+
                 let neighbours = match (left.as_ref(), right.as_ref()) {
                     (BCSTree::Leaf(x), BCSTree::Leaf(y)) => {
                         vec![diff_leaf(x.clone(), y.clone()).unwrap_or(GraphDiff(
@@ -346,16 +394,24 @@ fn diff<'a>(
                     }
                 };
 
+                println!("{} neighbours", neighbours.len());
+
                 for neighbour in neighbours {
                     let tg = g + cost(&neighbour);
                     let rn = Rc::new(neighbour);
 
+		    println!("tg = {}", tg);
+
+		    println!("g = {}", if g_scores.contains_key(&rn) { format!("{}", g_scores[&rn]) } else { "+∞".to_string() });
+
                     if !g_scores.contains_key(&rn) || tg < g_scores[&rn] {
                         parents.insert(rn.clone(), gd.clone());
 
+                        println!("\tpushed one");
+
                         let tf = tg + hgd(rn.as_ref());
 
-			g_scores.insert(rn.clone(), tg);
+                        g_scores.insert(rn.clone(), tg);
                         heap.push(Reverse((tf, rn)));
                     }
                 }
@@ -365,6 +421,7 @@ fn diff<'a>(
                 Gdv::NextLR(((ref l0, l0h), (ref r0, r0h)), ((ref l1, l1h), (ref r1, r1h))),
             ) => {
                 let mut th = BinaryHeap::new();
+		let mut bg = g_scores.clone();
 
                 let s1 = Rc::new(GraphDiff(
                     FlatDiff::Start,
@@ -372,13 +429,11 @@ fn diff<'a>(
                 ));
 
                 th.push(Reverse((0, s1.clone())));
-                let gs1 = g_scores.get(&s1).copied();
-                g_scores.insert(s1.clone(), 0);
-                let dl = diff(parents, &mut th, g_scores);
+                bg.insert(s1.clone(), 0);
+                println!("left>>>>>>>>>>>>>>>");
+                let dl = diff(parents, &mut th, &mut bg);
+                println!("left<<<<<<<<<<<<<<<");
 
-                if let Some(g) = gs1 {
-                    g_scores.insert(s1, g);
-                }
 
                 let s2 = Rc::new(GraphDiff(
                     FlatDiff::Start,
@@ -387,7 +442,9 @@ fn diff<'a>(
                 th.clear();
                 th.push(Reverse((0, s2.clone())));
                 g_scores.insert(s2, 0);
+                println!("right>>>>>>>>>>>>>>>");
                 let dr = diff(parents, &mut th, g_scores);
+                println!("right<<<<<<<<<<<<<<<");
 
                 let d = Rc::new(match fd {
                     FlatDiff::TEps(m) => Diff::TEps(*m, dl, dr),
@@ -615,20 +672,20 @@ mod test {
         let rbcst: (BCSTree, usize) = rrcst.into();
         let rbcst = (Rc::new(rbcst.0), rbcst.1);
 
-	println!("{:#?}", lbcst);
+        println!("{:#?}", lbcst);
 
         let diff = diff_wrapper(lbcst.clone(), rbcst.clone());
 
-	println!("{:#?}", diff);
+        println!("{:#?}", diff);
 
         let patch = patch(lbcst, diff).unwrap();
 
-	println!("{:#?}", rbcst);
-	println!("{:#?}", patch);
+        println!("{:#?}", rbcst);
+        println!("{:#?}", patch);
 
-	let ps = super::bcst_to_code(patch.0.clone());
+        let ps = super::bcst_to_code(patch.0.clone());
 
-	println!("{}", ps);
+        println!("{}", ps);
 
         assert_eq!(rbcst, patch);
     }
