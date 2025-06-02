@@ -183,19 +183,22 @@ fn hgd(gd: &GraphDiff<'_>) -> usize {
 fn cost(gd: &GraphDiff<'_>) -> usize {
     /* analog to Diff::weight, without *diff* children */
     match gd.0 {
-        FlatDiff::Eps | FlatDiff::TEps(_) | FlatDiff::Start | FlatDiff::RMod => 0,
+        FlatDiff::Eps | FlatDiff::TEps(_) | FlatDiff::Start => 0,
         /* we logically want `mod`s to have the largest possible value,
          * so that they are picked last by A*.
          */
         FlatDiff::Mod => match &gd.1 {
             Gdv::Final(d) => match d.as_ref() {
-                Diff::Mod((_, lh), (_, rh)) => *lh + *rh,
+                Diff::Mod((_, lh), (_, rh)) => *lh + *rh + 1,
                 _ => unreachable!("incoherent diff type: {:?}", gd.1),
             },
             _ => unreachable!(),
         },
         /* we don't do the same for AddL and AddR, because the only
          * thing we want to test before it is TEps/TMod, which is 0-cost.
+	 *
+	 * RMod has cost 1 because it is semantically equivalent to a Mod
+	 * of two leaves.
          */
         _ => 1,
     }
