@@ -420,7 +420,7 @@ mod test {
         let rtree = parser.parse(right, None).unwrap();
         let rnode = rtree.root_node();
 
-        let rrcst = RCSTree::from(rnode, left);
+        let rrcst = RCSTree::from(rnode, right);
         let rbcst: (BCSTree, usize) = rrcst.into();
         let rbcst = (Rc::new(rbcst.0), rbcst.1);
 
