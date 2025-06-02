@@ -562,6 +562,55 @@ $
 
 == Implementation strategies
 
+The first strategy we used was treating the diffing problem
+as a shortest-path finding problem in a directed acyclic graph (DAG):
+
+#figure(
+	diagram(
+		node-stroke: .1em,
+		spacing: 2.5em,
+		node((0, 0), `foo(a,b) | foo(a, c)`),
+		node((-2, 1.5), `a | a`, fill: red),
+		node((-1.25, 1.5), `b | c`, fill: orange),
+		node((-0.5, 1.5), `foo(a, b) | c`),
+		node((0.5, 1.5), `foo(a, b) | a`),
+		node((1.5, 1.5), `b | foo(a, c)`),
+		node((2.75, 1.5), `a | foo(a, c)`),
+
+		node((-2, 2.5), $script(emptyset)$, fill: red),
+		node((-1.25, 2.5), $script(emptyset)$, fill: orange),
+
+		edge((0, 0), (-2.25, 1.3), "-|>", $script(t_epsilon (\_, emptyset))$),
+		edge((0, 0), (-1.25, 1.5), "-|>", $script(t_epsilon (emptyset, \_))$),
+		edge((0, 0), (-0.5, 1.5), "--|>", $script(pi_tack.l (a, \_))$),
+		edge((0, 0), (0.5, 1.5), "--|>", $script(pi_tack.r (\_, c))$),
+		edge((0, 0), (1.5, 1.5), "--|>", $script(beta_tack.l)$),
+		edge((0, 0), (2.75, 1.5), "--|>", $script(beta_tack.r)$),
+
+		edge((-2, 1.5), (-2, 2.5), "-|>", $script(epsilon)$),
+		edge((-1.25, 1.5), (-1.25, 2.5), "-|>", $script(mu (b, c))$)
+	),
+	caption: [Graph formulation of the diff problem]
+) <graph-diff>
+
+@graph-diff displays the unfolding of the thus conceived diffing process,
+implemented using a modified version of the A\* algorithm.
+All nodes shown in the figure were pushed onto the min-heap at some point
+and dotted edges indicate unvisited paths. Colours indicate that such nodes
+were constructed by recursive calls to the `diff` function. The heap we
+use minimises $f(n) = g(n) + h(n)$ where $g$ and $h$ are calculated as follows:
+$g(n)$ is 0 for $epsilon$ and $t_epsilon$ (and necessarily for the initial
+node), $|x| + |y|$ for $mu (x, y)$ and 1 for other constructors. If corresponds
+to the previously defined $w$ function when applied to the entire graph.
+The heuristic function $h$ is defined by $h(l, r) = min(|l|, |r|)$, where
+$l$ and $r$ are respectively the left and right trees the diff is processing.
+We also have $h(emptyset) = 0$ and when dealing with recursive (i.e. binary)
+constructors, the smallest heuristic value is kept.
+
+When compared with a rather naive implementation (with memoisation of already-diffed
+nodes as sole optimisation), this method has shown to greatly reduce (approximately tenfold)
+the time needed to diff the same file pairs.
+
 == Formatting preservation
 
 = Performance
