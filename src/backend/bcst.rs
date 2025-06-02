@@ -127,7 +127,7 @@ impl<'a> PartialOrd for GraphDiff<'a> {
 }
 
 fn diff_leaf<'a>(x: Data<'a>, y: Data<'a>) -> Option<GraphDiff<'a>> {
-    println!("{:?} ; {:?}", x, y);
+    // println!("{:?} ; {:?}", x, y);
     match (x.named, y.named) {
         (false, false) => {
             if y.node_type == x.node_type && y.range == x.range && y.text == x.text {
@@ -183,7 +183,7 @@ fn hgd(gd: &GraphDiff<'_>) -> usize {
 fn cost(gd: &GraphDiff<'_>) -> usize {
     /* analog to Diff::weight, without *diff* children */
     match gd.0 {
-        FlatDiff::Eps | FlatDiff::TEps(_) | FlatDiff::RMod | FlatDiff::Start => 0,
+        FlatDiff::Eps | FlatDiff::TEps(_) | FlatDiff::Start | FlatDiff::RMod => 0,
         /* we logically want `mod`s to have the largest possible value,
          * so that they are picked last by A*.
          */

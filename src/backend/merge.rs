@@ -129,7 +129,7 @@ mod test {
         let stree = parser.parse(res, None).unwrap();
         let snode = stree.root_node();
 
-        let brcst = RCSTree::from(bnode, left);
+        let brcst = RCSTree::from(bnode, base);
         let bbcst: (BCSTree, usize) = brcst.into();
         let bbcst = (Rc::new(bbcst.0), bbcst.1);
 
@@ -141,7 +141,7 @@ mod test {
         let rbcst: (BCSTree, usize) = rrcst.into();
         let rbcst = (Rc::new(rbcst.0), rbcst.1);
 
-        let srcst = RCSTree::from(snode, left);
+        let srcst = RCSTree::from(snode, res);
         let sbcst: (BCSTree, usize) = srcst.into();
         let sbcst = (Rc::new(sbcst.0), sbcst.1);
 
@@ -153,20 +153,9 @@ mod test {
 
         let mut conflicts = Vec::new();
 
-	println!("{:#?}", diff_bl);
-	println!("{:#?}", diff_br);
-
         let diff_m = merge(diff_bl, diff_br, &mut conflicts);
 
         assert!(conflicts.is_empty());
-
-	println!("{:#?}", diff_bs);
-	println!("{:#?}", diff_m);
-
-	let nms = patch(bbcst.clone(), diff_m.clone()).unwrap();
-	let nmst = bcst_to_code(nms.0);
-
-	println!("{}", nmst);
 
         assert_eq!(diff_bs, diff_m);
     }
@@ -192,7 +181,7 @@ mod test {
         let rtree = parser.parse(right, None).unwrap();
         let rnode = rtree.root_node();
 
-        let brcst = RCSTree::from(bnode, left);
+        let brcst = RCSTree::from(bnode, base);
         let bbcst: (BCSTree, usize) = brcst.into();
         let bbcst = (Rc::new(bbcst.0), bbcst.1);
 
