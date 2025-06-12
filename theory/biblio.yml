@@ -1,0 +1,6 @@
+git:
+  type: repository
+  title: Git
+  author: Torvalds, Linus
+  date: 2005
+  url: https://github.com/git/git

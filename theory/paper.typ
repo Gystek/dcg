@@ -1,10 +1,12 @@
 #set page(
     paper: "a4",
     number-align: center,
-    numbering: "1"
+    numbering: "1",
+	columns: 2,
 )
 #set heading(numbering: "1.")
 #set par(first-line-indent: 2em)
+#set text(font: "New Computer Modern")
 
 #show math.equation: set block(breakable: true)
 
@@ -28,13 +30,22 @@
   body
 }
 
-#align(center, text(17pt)[
+#place(
+  top + center,
+  scope: "parent",
+  float: true,
+align(center, text(17pt)[
 	*Dating tree rings: CST-based version control*
-])
+	])
+)
 
-#align(center, text(11pt)[
+#place(
+  top + center,
+  scope: "parent",
+  float: true,
+	align(center, text(11pt)[
     Gustek \ #link("mailto:gustek@riseup.net")[`gustek@riseup.net`]
-])\
+]))
 
 #align(center)[
     #set par(justify: false)
@@ -48,8 +59,7 @@ the software development industry. The core of a VCS can
 be identified as two main processes: the calculation of
 changes between two versions of the program, and the
 merging of the said changes when they exist across
-different branches. Most VCSs --- such as Git (Torvalds
-2005), which is almost universally used in open source
+different branches. Most VCSs --- such as Git @git, which is almost universally used in open source
 software projects --- perform this first step in a
 similar fashion as `diff(1)`; that is, linearly. This
 strategy, although simple to implement, is unsatisfactory
@@ -78,7 +88,33 @@ version of the file, whereas version `b` and `c` each
 succeed it on a different branch.
 
 #figure(
-	diagram(
+	grid(
+		columns: (1fr, 1fr, 1fr),
+		align(center)[
+			version `a`:
+			```rs
+			...
+			5 + 6
+			...
+			```
+		],
+		align(center)[
+			version `b`:
+			```rs
+			...
+			5 + 7
+			...
+			```
+		],
+		align(center)[
+			version `c`:
+			```rs
+			...
+			5 - 6
+			...
+			```
+		]
+	) + diagram(
 		node-stroke: .1em,
 		spacing: 2.5em,
 		node((0, 0), `a`),
@@ -87,36 +123,10 @@ succeed it on a different branch.
 		edge((0, 0), (1, 0), "-|>"),
 		edge((0, 0), (1, 1), "-|>"),
 	),
+	placement: auto,
+	scope: "parent",
 	caption: [Position of `a`, `b` and `c` in the history]
 ) <abcmerge>
-
-#grid(
-	columns: (1fr, 1fr, 1fr),
-	align(center)[
-		version `a`:
-		```rs
-		...
-		5 + 6
-		...
-		```
-	],
-	align(center)[
-		version `b`:
-		```rs
-		...
-		5 + 7
-		...
-		```
-	],
-	align(center)[
-		version `c`:
-		```rs
-		...
-		5 - 6
-		...
-		```
-	]
-)
 
 If we try and merge version `b` and `c` while the changes 
 they describe have been calculated linearly, a merge 
@@ -130,45 +140,50 @@ peformed automatically.
 
 The third problem line-based VCS (or diff programs in 
 general) exhibit is the lack of clarity for the user. See 
-the following example:
+the example in @minorchange:
 
-#grid(
-	columns: (1fr, 1fr),
-	align(center)[
-		version 1:
-		```rs
-		fn f(a: i32, x: i32) -> i32 {
-			(if x % 2 == 0 {
-				-1
-			} else {
-				x
-			}) + a
-		}
+#figure(
+	grid(
+		columns: (1fr, 1fr),
+		align(center)[
+			version 1:
+			```rs
+			fn f(a: i32, x: i32) -> i32 {
+				(if x % 2 == 0 {
+					-1
+				} else {
+					x
+				}) + a
+			}
 
-		fn main() {
-			let v = vec![1, 2, 3];
-			let x = v.iter().fold(0, f);
-		}
-		```
-	],
-	align(center)[
-		version 2:
-		```rs
-		fn f(a: i32, x: i32) -> i32 {
-			(if x % 2 == 0 {
-				2
-			} else {
-				x
-			}) + a
-		}
+			fn main() {
+				let v = vec![1, 2, 3];
+				let x = v.iter().fold(0, f);
+			}
+			```
+		],
+		align(center)[
+			version 2:
+			```rs
+			fn f(a: i32, x: i32) -> i32 {
+				(if x % 2 == 0 {
+					2
+				} else {
+					x
+				}) + a
+			}
 
-		fn main() {
-			let v = vec![1, 2, 3];
-			let x = v.iter().fold(0, f);
-		}
-		```
-	]
-)
+			fn main() {
+				let v = vec![1, 2, 3];
+				let x = v.iter().fold(0, f);
+			}
+			```
+		]
+	),
+	placement: auto,
+	scope: "parent",
+	caption: [minor change between two Rust files]
+) <minorchange>
 
 The difference between both versions as calculated by a 
 linear algorithm is the replacement of the line 
@@ -244,7 +259,7 @@ c_(b->r)(tau_i (x, "nil"_Tau)) &= tau_(R i)("cons"(c_
 c_(b->r)(tau_i (x,y)) &= tau_(R i)(c_(b->r)(x)::c_(b->r) '
 (y)) $
 
-where $c_(b->r) ' : Tau --> "list" Tau_R$ is a utilitary 
+where $c_(b->r) ' : Tau --> "list" Tau_R$ is a utility 
 function that is defined as follows:
 
 $ c_(b->r) '("nil"_T) &= "nil" \
@@ -322,7 +337,7 @@ It is worth noting that the patch function is not
 actually defined on $Tau --> Delta --> Tau$, rather on 
 $Tau --> Delta_t --> Tau$, where $Delta_t$ is the set of 
 diffs applicable to a specific tree $t$, on which we can 
-place the following bound: ${epsilon} subset Delta_t$.
+place the following bound: ${epsilon; mu (t, u) | u : Tau} subset Delta_t$.
 
 == Algorithms
 
@@ -360,6 +375,19 @@ d(tau_i (x, y), kappa(a)) &= "min"_w (delta_mu,
 "where" & delta_mu = mu(tau_i (x, y), kappa(a)) \
         & delta_beta_tack.l = beta_tack.l (d(y, kappa(a)))\
 "and"   & delta_beta_tack.r = beta_tack.r (d(x, kappa(a)) $
+
+The diff output by $d$ is optimal in size:
+#lemma("diff optimality")[
+		$
+		t,t': Tau \
+		delta = d(t, t') \
+		delta' : Delta, p(t, delta') = t' \
+		w(delta') >= w(delta).
+		$
+] <optimal>
+#proof[
+	See @optimal_proof.
+]
 
 We then define the patch function $p : Tau --> Delta --> Tau$:
 
@@ -476,7 +504,7 @@ We now prove the correctness of the pipeline:
 If we take up the same arithmetical system as described in
 the diff/patch part, we can define the _merged diff_ of
 $delta_1$ and $delta_2$, $delta_3 = m(delta_1, delta_2)$,
-as the diff which, when added to the base tree $t$ of
+as the diff which, when patched onto the base tree $t$ of
 both $delta_1$ and $delta_2$, includes both the changes
 described in $delta_1$ and those described in $delta_2$.
 
@@ -556,7 +584,7 @@ $
   epsilon_R (epsilon) &= epsilon \
 $
 
-== Diff optimality
+== Heuristics
 
 = Pratical considerations
 
@@ -580,16 +608,18 @@ as a shortest-path finding problem in a directed acyclic graph (DAG):
 		node((-2, 2.5), $script(emptyset)$, fill: red),
 		node((-1.25, 2.5), $script(emptyset)$, fill: orange),
 
-		edge((0, 0), (-2.25, 1.3), "-|>", $script(t_epsilon (\_, emptyset))$),
-		edge((0, 0), (-1.25, 1.5), "-|>", $script(t_epsilon (emptyset, \_))$),
-		edge((0, 0), (-0.5, 1.5), "--|>", $script(pi_tack.l (a, \_))$),
-		edge((0, 0), (0.5, 1.5), "--|>", $script(pi_tack.r (\_, c))$),
-		edge((0, 0), (1.5, 1.5), "--|>", $script(beta_tack.l)$),
-		edge((0, 0), (2.75, 1.5), "--|>", $script(beta_tack.r)$),
+		edge((0, 0), (-2.25, 1.3), "-|>", label-side: center, $script(t_epsilon (\_, emptyset))$),
+		edge((0, 0), (-1.25, 1.5), "-|>", label-side: center, $script(t_epsilon (emptyset, \_))$),
+		edge((0, 0), (-0.5, 1.5), "--|>", label-side: center, $script(pi_tack.l (a, \_))$),
+		edge((0, 0), (0.5, 1.5), "--|>", label-side: center, $script(pi_tack.r (\_, c))$),
+		edge((0, 0), (1.5, 1.5), "--|>", label-side: center, $script(beta_tack.l)$),
+		edge((0, 0), (2.75, 1.5), "--|>", label-side: center, $script(beta_tack.r)$),
 
-		edge((-2, 1.5), (-2, 2.5), "-|>", $script(epsilon)$),
-		edge((-1.25, 1.5), (-1.25, 2.5), "-|>", $script(mu (b, c))$)
+		edge((-2, 1.5), (-2, 2.5), "-|>", label-side: center, $script(epsilon)$),
+		edge((-1.25, 1.5), (-1.25, 2.5), "-|>", label-side: center, $script(mu (b, c))$)
 	),
+	scope: "parent",
+	placement: auto,
 	caption: [Graph formulation of the diff problem]
 ) <graph-diff>
 
@@ -607,7 +637,7 @@ $l$ and $r$ are respectively the left and right trees the diff is processing.
 We also have $h(emptyset) = 0$ and when dealing with recursive (i.e. binary)
 constructors, the smallest heuristic value is kept.
 
-When compared with a rather naive implementation (with memoisation of already-diffed
+When compared to a rather naive implementation (with memoisation of already-diffed
 nodes as sole optimisation), this method has shown to greatly reduce (approximately tenfold)
 the time needed to diff the same file pairs.
 
@@ -625,8 +655,12 @@ the time needed to diff the same file pairs.
 
 = Conclusion
 
+#bibliography(title: "References", "biblio.yml")
+
 #show: appendix
 
 = Some proofs
 
 == @lemmaconv <lemmaconv_proof>
+
+== @optimal <optimal_proof>
