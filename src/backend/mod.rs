@@ -1,6 +1,8 @@
 pub(crate) mod bcst;
 pub(crate) mod data;
 pub(crate) mod diff;
+pub(crate) mod languages;
+pub(crate) mod linguist;
 pub(crate) mod merge;
 pub(crate) mod metadata;
 pub(crate) mod patch;

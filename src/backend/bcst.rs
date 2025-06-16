@@ -275,7 +275,7 @@ fn diff<'a>(
     heap: &mut BinaryHeap<Reverse<(usize, Rc<GraphDiff<'a>>)>>,
     g_scores: &mut HashMap<Rc<GraphDiff<'a>>, usize>,
 ) -> Rc<Diff<'a>> {
-    while let Some(Reverse((f, gd))) = heap.pop() {
+    while let Some(Reverse((_, gd))) = heap.pop() {
         let g = g_scores[&gd];
 
         match gd.as_ref() {

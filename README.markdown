@@ -14,6 +14,11 @@ Roadmap
   - [x] Formatting preservation
   - [x] IR serialisation
   - [x] Merge
+  - [ ] Linguist
+  - [ ] Diff storage
+	- [ ] Code files
+	- [ ] Plain text/unidentified files
+	- [ ] Binary files
   - [ ] Diff optimisation
 	- [x] ε-reduction
 	- [ ] Diff heuristics
@@ -22,11 +27,6 @@ Roadmap
   - [ ] Diff pretty-printer
   - [ ] Merge conflict pretty-printer
   - [ ] Git idk
-    - [ ] Linguist
-	- [ ] Diff storage
-		- [ ] Code files
-		- [ ] Plain text/unidentified files
-		- [ ] Binary files
   - [ ] User manual
 
 Internals

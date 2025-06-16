@@ -9,3 +9,4 @@ tree-sitter-rust = "0.23"
 
 [build-dependencies]
 cc="*"
+toml = "0.8"
