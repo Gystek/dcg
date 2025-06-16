@@ -11,7 +11,7 @@ use toml::Value;
 const LINGUIST_TOML: &str = "linguist.toml";
 const OUTPUT_FILE: &str = "src/backend/languages.rs";
 
-const ACCEPTED_SECTIONS: [&str; 4] = ["modeline_emacs", "modeline_vim", "filenames", "shebang"];
+const ACCEPTED_SECTIONS: [&str; 5] = ["modeline_emacs", "modeline_vim", "filenames", "shebang", "heuristics"];
 
 fn main() {
     let linguist_contents =
