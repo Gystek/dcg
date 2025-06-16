@@ -8,7 +8,7 @@
 # Headings can define the following keys:
 # - filenames: globs representing the filenames that correspond to this language
 # - shebang: globs representing the first line (shebang or other) indicating this language
-# - modeline_emacs and modeline_vim: globs for the Emacs/Vim modeline for this language
+# - modelines: globs for the Emacs/Vim modeline for this language
 # - heuristics: globs which are matched against every line of the program to identify the language.
 #
 # Checks are run in this order for obvious performance reasons. If they all fail, the PlainText
