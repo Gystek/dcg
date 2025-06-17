@@ -120,16 +120,17 @@ fn main() {
     linguist_code.push_str("}\n");
 
     for sect in ACCEPTED_SECTIONS {
-	let big_sect = sect.to_ascii_uppercase();
+        let big_sect = sect.to_ascii_uppercase();
 
         linguist_code.push_str(&format!(
-	    "\npub(crate) fn compile_{}_map() -> BTreeMap<Languages, Vec<Pattern>> {{\n",
+            "\npub(crate) fn compile_{}_map() -> BTreeMap<Languages, Vec<Pattern>> {{\n",
             sect
         ));
 
-	linguist_code.push_str("    let mut gmap = BTreeMap::new();\n");
+        linguist_code.push_str("    let mut gmap = BTreeMap::new();\n");
 
-	linguist_code.push_str(&format!(r#"
+        linguist_code.push_str(&format!(
+            r#"
     unsafe {{
         for lang in {}.keys() {{
             gmap.insert(*lang, vec![]);
@@ -142,8 +143,11 @@ fn main() {
     }}
 
     gmap
-}}"#, big_sect, big_sect));
-        }
+}}
+"#,
+            big_sect, big_sect
+        ));
+    }
 
     let gen_file = Path::new(OUTPUT_FILE);
 

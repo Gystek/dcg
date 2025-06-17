@@ -1,5 +1,13 @@
+use glob::Pattern;
+
 use crate::backend::languages::{self, Languages};
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::BTreeMap,
+    ffi::OsStr,
+    fs::File,
+    io::{self, prelude::*, BufReader, Lines},
+    path::Path,
+};
 
 pub(crate) fn get_ts_language(lng: Languages) -> Option<tree_sitter::Language> {
     match lng {
@@ -31,30 +39,150 @@ pub(crate) fn get_ts_language(lng: Languages) -> Option<tree_sitter::Language> {
     }
 }
 
-pub(crate) fn guess_language(file: &Path) -> Languages {
-    guess_filenames(file)
-        .or_else(|| guess_shebangs(file))
-        .or_else(|| guess_modelines(file))
-        .or_else(|| guess_heuristics(file))
-        .unwrap_or_else(|| plain_or_binary(file))
+pub(crate) fn guess_language(
+    file: &Path,
+    filenames: &BTreeMap<Languages, Vec<Pattern>>,
+    shebang: &BTreeMap<Languages, Vec<Pattern>>,
+    modelines: &BTreeMap<Languages, Vec<Pattern>>,
+    heuristics: &BTreeMap<Languages, Vec<Pattern>>,
+) -> io::Result<Languages> {
+    match guess_filenames(file, filenames) {
+        Some(lng) => Ok(lng),
+        None => {
+            let mut r = BufReader::new(File::open(file)?);
+            let mut lines = r.by_ref().lines();
+
+            let n0 = lines.next().map_or(Ok(None), |x| x.map(Some))?;
+
+            if let Some(lng) = guess_shebang(file, shebang, &n0) {
+                Ok(lng)
+            } else if let Some(lng) = guess_modelines(file, modelines, lines, n0)? {
+                Ok(lng)
+            } else {
+                r.rewind()?;
+
+                if let Some(lng) = guess_heuristics(file, heuristics, r.by_ref().lines())? {
+                    Ok(lng)
+                } else {
+                    r.rewind()?;
+                    plain_or_binary(file, r)
+                }
+            }
+        }
+    }
 }
 
-fn guess_filenames(file: &Path) -> Option<Languages> {
+fn guess_filenames(
+    file: &Path,
+    filenames: &BTreeMap<Languages, Vec<Pattern>>,
+) -> Option<Languages> {
+    let fname = file.file_name().and_then(OsStr::to_str).unwrap_or("");
+
+    for (lang, patterns) in filenames {
+        for pattern in patterns {
+            if pattern.matches(fname) {
+                return Some(*lang);
+            }
+        }
+    }
+
     None
 }
 
-fn guess_shebangs(file: &Path) -> Option<Languages> {
+fn guess_shebang(
+    file: &Path,
+    shebang: &BTreeMap<Languages, Vec<Pattern>>,
+    first: &Option<String>,
+) -> Option<Languages> {
+    let first = first.as_deref().unwrap_or("");
+
+    for (lang, patterns) in shebang {
+        for pattern in patterns {
+            if pattern.matches(first) {
+                return Some(*lang);
+            }
+        }
+    }
+
     None
 }
 
-fn guess_modelines(file: &Path) -> Option<Languages> {
-    None
+const MODELINE_LINE_COUNT: usize = 5;
+
+fn guess_modelines(
+    file: &Path,
+    modelines: &BTreeMap<Languages, Vec<Pattern>>,
+    lines: Lines<&mut BufReader<File>>,
+    first: Option<String>,
+) -> io::Result<Option<Languages>> {
+    let first = first.as_deref().unwrap_or("");
+    /* we look at the MODELINE_LINE_COUNT first and last lines
+     * of the file
+     */
+    let mut last = Vec::with_capacity(MODELINE_LINE_COUNT);
+
+    last.push(first.to_string());
+
+    for (lang, patterns) in modelines {
+        for pattern in patterns {
+            if pattern.matches(first) {
+                return Ok(Some(*lang));
+            }
+        }
+    }
+
+    for (i, line) in lines.enumerate() {
+        let line = line?;
+
+        if i + 1 < MODELINE_LINE_COUNT {
+            for (lang, patterns) in modelines {
+                for pattern in patterns {
+                    if pattern.matches(&line) {
+                        return Ok(Some(*lang));
+                    }
+                }
+            }
+        }
+
+        if last.len() >= MODELINE_LINE_COUNT {
+            last.remove(0);
+            last.push(line);
+        }
+    }
+
+    for line in last {
+        for (lang, patterns) in modelines {
+            for pattern in patterns {
+                if pattern.matches(&line) {
+                    return Ok(Some(*lang));
+                }
+            }
+        }
+    }
+
+    Ok(None)
 }
 
-fn guess_heuristics(file: &Path) -> Option<Languages> {
-    None
+fn guess_heuristics(
+    file: &Path,
+    heuristics: &BTreeMap<Languages, Vec<Pattern>>,
+    lines: Lines<&mut BufReader<File>>,
+) -> io::Result<Option<Languages>> {
+    for line in lines {
+        let line = line?;
+
+        for (lang, patterns) in heuristics {
+            for pattern in patterns {
+                if pattern.matches(&line) {
+                    return Ok(Some(*lang));
+                }
+            }
+        }
+    }
+
+    Ok(None)
 }
 
-fn plain_or_binary(file: &Path) -> Languages {
-    Languages::PlainText
+fn plain_or_binary(file: &Path, reader: BufReader<File>) -> io::Result<Languages> {
+    Ok(Languages::PlainText)
 }

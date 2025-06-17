@@ -15,12 +15,17 @@ Roadmap
   - [x] IR serialisation
   - [x] Merge
   - [ ] Linguist
+    - [x] Filetype linguist
+	- [ ] Binary file identification
+	- [ ] Extend configuration
+  - [ ] Linear diff
   - [ ] Diff storage
 	- [ ] Code files
 	- [ ] Plain text/unidentified files
 	- [ ] Binary files
   - [ ] Diff optimisation
 	- [x] ε-reduction
+	- [x] reduction to graph problem
 	- [ ] Diff heuristics
   - [ ] Custom parsers
 - [ ] Frontend
