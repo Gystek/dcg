@@ -16,7 +16,7 @@ Roadmap
   - [x] Merge
   - [ ] Linguist
     - [x] Filetype linguist
-	- [ ] Binary file identification
+	- [x] Binary file identification
 	- [ ] Extend configuration
   - [ ] Linear diff
   - [ ] Diff storage
@@ -25,7 +25,7 @@ Roadmap
 	- [ ] Binary files
   - [ ] Diff optimisation
 	- [x] ε-reduction
-	- [x] reduction to graph problem
+	- [x] Reduction to graph problem
 	- [ ] Diff heuristics
   - [ ] Custom parsers
 - [ ] Frontend

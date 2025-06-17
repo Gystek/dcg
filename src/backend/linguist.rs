@@ -1,3 +1,4 @@
+use content_inspector::ContentType;
 use glob::Pattern;
 
 use crate::backend::languages::{self, Languages};
@@ -46,8 +47,22 @@ pub(crate) fn guess_language(
     modelines: &BTreeMap<Languages, Vec<Pattern>>,
     heuristics: &BTreeMap<Languages, Vec<Pattern>>,
 ) -> io::Result<Languages> {
+    if let Ok(Some(lng)) = guess_language_utf8(file, filenames, shebang, modelines, heuristics) {
+	Ok(lng)
+    } else {
+	File::open(file).map(BufReader::new).and_then(plain_or_binary)
+    }
+}
+
+fn guess_language_utf8(
+    file: &Path,
+    filenames: &BTreeMap<Languages, Vec<Pattern>>,
+    shebang: &BTreeMap<Languages, Vec<Pattern>>,
+    modelines: &BTreeMap<Languages, Vec<Pattern>>,
+    heuristics: &BTreeMap<Languages, Vec<Pattern>>,
+) -> io::Result<Option<Languages>> {
     match guess_filenames(file, filenames) {
-        Some(lng) => Ok(lng),
+        Some(lng) => Ok(Some(lng)),
         None => {
             let mut r = BufReader::new(File::open(file)?);
             let mut lines = r.by_ref().lines();
@@ -55,18 +70,13 @@ pub(crate) fn guess_language(
             let n0 = lines.next().map_or(Ok(None), |x| x.map(Some))?;
 
             if let Some(lng) = guess_shebang(file, shebang, &n0) {
-                Ok(lng)
+                Ok(Some(lng))
             } else if let Some(lng) = guess_modelines(file, modelines, lines, n0)? {
-                Ok(lng)
+                Ok(Some(lng))
             } else {
                 r.rewind()?;
 
-                if let Some(lng) = guess_heuristics(file, heuristics, r.by_ref().lines())? {
-                    Ok(lng)
-                } else {
-                    r.rewind()?;
-                    plain_or_binary(file, r)
-                }
+                guess_heuristics(file, heuristics, r.by_ref().lines())
             }
         }
     }
@@ -183,6 +193,11 @@ fn guess_heuristics(
     Ok(None)
 }
 
-fn plain_or_binary(file: &Path, reader: BufReader<File>) -> io::Result<Languages> {
-    Ok(Languages::PlainText)
+fn plain_or_binary(reader: BufReader<File>) -> io::Result<Languages> {
+    let bytes = reader.bytes().collect::<io::Result<Vec<u8>>>()?;
+
+    match content_inspector::inspect(&bytes) {
+	ContentType::BINARY  => Ok(Languages::Binary),
+	_ => Ok(Languages::PlainText),
+    }
 }
