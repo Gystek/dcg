@@ -1,7 +1,9 @@
 pub(crate) mod bcst;
 pub(crate) mod data;
 pub(crate) mod diff;
+#[allow(static_mut_refs)]
 pub(crate) mod languages;
+pub(crate) mod linear;
 pub(crate) mod linguist;
 pub(crate) mod merge;
 pub(crate) mod metadata;

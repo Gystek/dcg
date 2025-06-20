@@ -48,9 +48,11 @@ pub(crate) fn guess_language(
     heuristics: &BTreeMap<Languages, Vec<Pattern>>,
 ) -> io::Result<Languages> {
     if let Ok(Some(lng)) = guess_language_utf8(file, filenames, shebang, modelines, heuristics) {
-	Ok(lng)
+        Ok(lng)
     } else {
-	File::open(file).map(BufReader::new).and_then(plain_or_binary)
+        File::open(file)
+            .map(BufReader::new)
+            .and_then(plain_or_binary)
     }
 }
 
@@ -69,14 +71,14 @@ fn guess_language_utf8(
 
             let n0 = lines.next().map_or(Ok(None), |x| x.map(Some))?;
 
-            if let Some(lng) = guess_shebang(file, shebang, &n0) {
+            if let Some(lng) = guess_shebang(shebang, &n0) {
                 Ok(Some(lng))
             } else if let Some(lng) = guess_modelines(file, modelines, lines, n0)? {
                 Ok(Some(lng))
             } else {
                 r.rewind()?;
 
-                guess_heuristics(file, heuristics, r.by_ref().lines())
+                guess_heuristics(heuristics, r.by_ref().lines())
             }
         }
     }
@@ -100,7 +102,6 @@ fn guess_filenames(
 }
 
 fn guess_shebang(
-    file: &Path,
     shebang: &BTreeMap<Languages, Vec<Pattern>>,
     first: &Option<String>,
 ) -> Option<Languages> {
@@ -174,7 +175,6 @@ fn guess_modelines(
 }
 
 fn guess_heuristics(
-    file: &Path,
     heuristics: &BTreeMap<Languages, Vec<Pattern>>,
     lines: Lines<&mut BufReader<File>>,
 ) -> io::Result<Option<Languages>> {
@@ -197,7 +197,7 @@ fn plain_or_binary(reader: BufReader<File>) -> io::Result<Languages> {
     let bytes = reader.bytes().collect::<io::Result<Vec<u8>>>()?;
 
     match content_inspector::inspect(&bytes) {
-	ContentType::BINARY  => Ok(Languages::Binary),
-	_ => Ok(Languages::PlainText),
+        ContentType::BINARY => Ok(Languages::Binary),
+        _ => Ok(Languages::PlainText),
     }
 }
