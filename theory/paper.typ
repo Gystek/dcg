@@ -79,7 +79,7 @@ really_long_function_name(6);
 ...
 ```
 
-Using a linear diff algorithm, the whole line is
+Using a linear _diff_ algorithm, the whole line is
 considered changed even if only a single character of the 
 line has actually been modified.
 
@@ -138,7 +138,7 @@ time-cosuming to fix and greatly impair productivity,
 requiring human intervention on a task that should be 
 peformed automatically.
 
-The third problem line-based VCS (or diff programs in 
+The third problem line-based VCS (or _diff_ programs in 
 general) exhibit is the lack of clarity for the user. See 
 the example in @minorchange:
 
@@ -191,7 +191,7 @@ containing ```rs -1``` by one containing ```rs 2```. It
 would be difficult for the user to figure out what the 
 change represents and he couldn't have more information 
 on the actual nature of the change, given that the linear 
-diff is not syntax-aware.
+_diff_ is not syntax-aware.
 
 In this paper, we study the computation of _diffs_ (ie. 
 collections of changes between two versions of a program) 
@@ -200,15 +200,15 @@ By applying such computations to syntax trees, the
 problems highlighted in the previous examples would be 
 solved, as the difference between the two lines of code 
 of the first example would be reduced to $5 --> 
-6$ (resulting in smaller diff files), there would be no
+6$ (resulting in smaller _diff_ files), there would be no
 merge conflicts in the history described by @abcmerge, 
 given that version `b` modifies an _operand_ whereas 
 version `c` changes an _operator_, and syntax-awareness 
 would allow for helpful contextualisation when displaying 
-diff files to the user.
+_diff_ files to the user.
 
 In this article, we tackle the issue of producing an 
-optimal diff for recursive structures. For doing so, we 
+optimal _diff_ for recursive structures. For doing so, we 
 introduce an expressive language for representing 
 structural changes and present algorithms for calculating 
 changes and applying them to recursive structures. We 
@@ -277,7 +277,7 @@ incidentally $c_(b->r) '$) function correspond to badly-formed binary trees and 
     See @lemmaconv_proof
 ]
 
-We can now define a diff type $Delta$ to represent
+We can now define a _diff_ type $Delta$ to represent
 changes between binary trees. It can be seen that its
 structure is much more complex than that of
 unidimensional (ie. linear) diffs.
@@ -308,7 +308,7 @@ of a node and the continuation of the computation on the
 right and the left, respectively, discarding the 
 other-hand child.
 
-We define a weight function $w : Delta --> NN$ on diffs, indicative of the cost of applying (and storing) the diff
+We define a weight function $w : Delta --> NN$ on diffs, indicative of the cost of applying (and storing) the _diff_
 (nb. $|x|$ is the size of $x : Tau$).
 
 $ w(epsilon) &= 0 \
@@ -318,22 +318,22 @@ w(t_(mu i->j)(x, y)) &= 1 + w(x) + w(y) \
 w(pi_(tack.l"/"tack.r i)(t, delta)) &= 1 + |t|+ w(delta)\
 w(beta_(tack.l"/"tack.r i)(delta)) &= 1 + w(delta) $
 
-We also define a $min_w : Delta --> Delta --> Delta$ function, yielding the diff having the smallest weight of the two, along with its generalisation for every $n in NN^*$, $min_w : Delta^n --> Delta$.
+We also define a $min_w : Delta --> Delta --> Delta$ function, yielding the _diff_ having the smallest weight of the two, along with its generalisation for every $n in NN^*$, $min_w : Delta^n --> Delta$.
 
 = Diffing and patching
 
 == Principle
 
 If we represent trees and diffs as an arithmetical 
-system, we can define the diff operation as an external 
+system, we can define the _diff_ operation as an external 
 substraction $- : Tau --> Tau --> Delta$, such that 
-$delta = y - x$. We can then define the patch operation 
+$delta = y - x$. We can then define the _patch_ operation 
 as an external addition $+ : Tau --> Delta --> Tau$, such 
 that $x + delta = y$. It then follows that $x + (y - x) = 
-y$. The diff function can be described as 
+y$. The _diff_ function can be described as 
 "$epsilon$-potent", given that $x - x = epsilon$.
 
-It is worth noting that the patch function is not 
+It is worth noting that the _patch_ function is not 
 actually defined on $Tau --> Delta --> Tau$, rather on 
 $Tau --> Delta_t --> Tau$, where $Delta_t$ is the set of 
 diffs applicable to a specific tree $t$, on which we can 
@@ -341,7 +341,7 @@ place the following bound: ${epsilon; mu (t, u) | u : Tau} subset Delta_t$.
 
 == Algorithms
 
-We thus define the diff function $d : Tau --> Tau --> Delta$:
+We thus define the _diff_ function $d : Tau --> Tau --> Delta$:
 
 $ d(kappa(x), kappa(y)) &= cases(
     epsilon "if" x = y,
@@ -376,7 +376,7 @@ d(tau_i (x, y), kappa(a)) &= "min"_w (delta_mu,
         & delta_beta_tack.l = beta_tack.l (d(y, kappa(a)))\
 "and"   & delta_beta_tack.r = beta_tack.r (d(x, kappa(a)) $
 
-The diff output by $d$ is optimal in size:
+The _diff_ output by $d$ is optimal in size:
 #lemma("diff optimality")[
 		$
 		t,t': Tau \
@@ -389,7 +389,7 @@ The diff output by $d$ is optimal in size:
 	See @optimal_proof.
 ]
 
-We then define the patch function $p : Tau --> Delta --> Tau$:
+We then define the _patch_ function $p : Tau --> Delta --> Tau$:
 
 $ p(x, epsilon) &= x \
 p(x, mu(x, y)) &= y \
@@ -404,12 +404,12 @@ One can see that the definition of $p$ does not match the
 entirety of $Tau times Delta$. In such cases not defined
 here, an implementation
 of the algorithm should throw an error, indicating that the
-provided diff is incompatible with the tree.
+provided _diff_ is incompatible with the tree.
 
 == Correctness
 
 In this section, we shall prove the correctness of the 
-diff-patch pipeline. For this, we introduce the following
+_diff_-_patch_ pipeline. For this, we introduce the following
 lemmas and relation: $cal(R) subset Tau times Tau times Delta$, defined by the following inference rules. For convenience, we write the proposition
 $(x, y, z) in cal(R)$ as $x | y ~> z$.
 
@@ -457,7 +457,7 @@ caption: [Inference rules for $cal(R)$]
 The relation $cal(R)$ is the relation
 between the input and the output of $d$, allowing for
 multiple images for a single input and thus getting rid of
-the $min_w$ function in the diff process. We then use it
+the $min_w$ function in the _diff_ process. We then use it
 as a proof device for simpler induction on diffs.
 
 #lemma[
@@ -502,9 +502,9 @@ We now prove the correctness of the pipeline:
 == Principle
 
 If we take up the same arithmetical system as described in
-the diff/patch part, we can define the _merged diff_ of
+the _diff_/_patch_ part, we can define the _merged diff_ of
 $delta_1$ and $delta_2$, $delta_3 = m(delta_1, delta_2)$,
-as the diff which, when patched onto the base tree $t$ of
+as the _diff_ which, when patched onto the base tree $t$ of
 both $delta_1$ and $delta_2$, includes both the changes
 described in $delta_1$ and those described in $delta_2$.
 
@@ -620,7 +620,7 @@ as a shortest-path finding problem in a directed acyclic graph (DAG):
 	),
 	scope: "parent",
 	placement: auto,
-	caption: [Graph formulation of the diff problem]
+	caption: [Graph formulation of the _diff_ problem]
 ) <graph-diff>
 
 @graph-diff displays the unfolding of the thus conceived diffing process,
@@ -633,15 +633,23 @@ $g(n)$ is 0 for $epsilon$ and $t_epsilon$ (and necessarily for the initial
 node), $|x| + |y|$ for $mu (x, y)$ and 1 for other constructors. If corresponds
 to the previously defined $w$ function when applied to the entire graph.
 The heuristic function $h$ is defined by $h(l, r) = min(|l|, |r|)$, where
-$l$ and $r$ are respectively the left and right trees the diff is processing.
+$l$ and $r$ are respectively the left and right trees the _diff_ is processing.
 We also have $h(emptyset) = 0$ and when dealing with recursive (i.e. binary)
 constructors, the smallest heuristic value is kept.
 
-When compared to a rather naive implementation (with memoisation of already-diffed
+When compared to a rather naive implementation (with memoisation of already-_diff_-ed
 nodes as sole optimisation), this method has shown to greatly reduce (approximately tenfold)
-the time needed to diff the same file pairs.
+the time needed to _diff_ the same file pairs.
 
-== Formatting preservation
+== Unidentified, plain text and binary files
+
+Unidentified and plain-text files are _diff_-ed linearily using the Histogram
+_diff_ algorithm. Linear _diffs_ are merged in a similar fashion as tree _diffs_,
+emulating a three-way merge.
+
+Binary files are stored _as-is_ on the filesystem given that it is more expensive both
+to compute and to store binary _diffs_. _Diffs_ are stored in the revision tree with a
+magic number header indicating their type.
 
 = Performance
 
