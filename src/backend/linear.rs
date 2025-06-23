@@ -149,6 +149,45 @@ pub(crate) fn merge<'a>(
     out
 }
 
+fn rle_encode<'a>(dd: &[LinDiff<'a>]) -> Vec<(u8, LinDiff<'a>)> {
+    if dd.is_empty() {
+        return vec![];
+    }
+
+    let mut nd = vec![];
+    let mut last = dd[0];
+    let mut occ = 1;
+
+    for &cur in dd.iter().skip(1) {
+        if occ < 255 && last == cur {
+            occ += 1;
+        } else {
+            nd.push((occ, last));
+            occ = 1;
+        }
+
+        last = cur;
+    }
+
+    nd.push((occ, last));
+
+    nd
+}
+
+fn rle_decode<'a>(dd: &[(u8, LinDiff<'a>)]) -> Vec<LinDiff<'a>> {
+    let mut nd = Vec::with_capacity(dd.len());
+
+    for &(o, d) in dd {
+        if o == 1 {
+            nd.push(d);
+        } else {
+            nd.extend(vec![d; o as usize]);
+        }
+    }
+
+    nd
+}
+
 /*
  * multi-byte values are stored in little endian
  * order.  strings are null-terminated.
@@ -156,9 +195,12 @@ pub(crate) fn merge<'a>(
 pub(crate) fn serialise<'a>(dd: &[LinDiff<'a>]) -> Vec<u8> {
     let mut out = vec![];
 
+    let dd = rle_encode(dd);
+
     out.extend(dd.len().to_le_bytes());
 
-    for d in dd {
+    for (o, d) in dd {
+        out.push(o);
         match d {
             LinDiff::Eps => out.push(0),
             LinDiff::Del => out.push(1),
@@ -179,9 +221,12 @@ pub(crate) fn deserialise<'a>(b: &'a [u8]) -> Vec<LinDiff<'a>> {
     let mut out = Vec::with_capacity(usize::from_le_bytes(b[0..i].try_into().unwrap()));
 
     while i < b.len() {
+        let ok = b[i];
+        i += 1;
+
         match b[i] {
-            0 => out.push(LinDiff::Eps),
-            1 => out.push(LinDiff::Del),
+            0 => out.push((ok, LinDiff::Eps)),
+            1 => out.push((ok, LinDiff::Del)),
             2 => {
                 let j = i + 1;
 
@@ -189,7 +234,10 @@ pub(crate) fn deserialise<'a>(b: &'a [u8]) -> Vec<LinDiff<'a>> {
                     i += 1;
                 }
 
-                out.push(LinDiff::Add(unsafe { str::from_utf8_unchecked(&b[j..i]) }));
+                out.push((
+                    ok,
+                    LinDiff::Add(unsafe { str::from_utf8_unchecked(&b[j..i]) }),
+                ));
             }
             _ => unreachable!(),
         }
@@ -197,7 +245,7 @@ pub(crate) fn deserialise<'a>(b: &'a [u8]) -> Vec<LinDiff<'a>> {
         i += 1;
     }
 
-    out
+    rle_decode(&out)
 }
 
 #[cfg(test)]

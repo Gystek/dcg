@@ -35,11 +35,9 @@ pub enum Languages {
 pub static mut MODELINES: BTreeMap<Languages, &[&str]> = BTreeMap::new();
 
 pub static mut FILENAMES: BTreeMap<Languages, &[&str]> = BTreeMap::new();
-const FILENAMES_HASKELL: [&str; 3] = ["*.hs", "*.hs-boot", "*.hsc"];
-const FILENAMES_VERILOG: [&str; 2] = ["*.v", "*.veo"];
-const FILENAMES_OCAML: [&str; 7] = [
-    "*.ml", "*.eliom", "*.eliomi", "*.ml4", "*.mli", "*.mll", "*.mly",
-];
+const FILENAMES_CSHARP: [&str; 4] = ["*.cs", "*.cake", "*.cs.pp", "*.csx"];
+const FILENAMES_CSS: [&str; 1] = ["*.css"];
+const FILENAMES_REGEX: [&str; 2] = ["*.regexp", "*.regex"];
 const FILENAMES_PHP: [&str; 13] = [
     ".php",
     ".php_cs",
@@ -54,6 +52,126 @@ const FILENAMES_PHP: [&str; 13] = [
     "*.php5",
     "*.phps",
     "*.phpt",
+];
+const FILENAMES_OCAML: [&str; 7] = [
+    "*.ml", "*.eliom", "*.eliomi", "*.ml4", "*.mli", "*.mll", "*.mly",
+];
+const FILENAMES_BASH: [&str; 11] = [
+    "*.sh",
+    "*.bash",
+    ".bash_aliases",
+    ".bash_functions",
+    ".bash_history",
+    ".bash_logout",
+    ".bash_profile",
+    ".bashrc",
+    ".envrc",
+    ".login",
+    ".profile",
+];
+const FILENAMES_JAVA: [&str; 3] = ["*.java", "*.jav", "*.jsh"];
+const FILENAMES_JAVASCRIPT: [&str; 26] = [
+    "Jakefile",
+    "*.js",
+    "*._js",
+    "*.bones",
+    "*.cjs",
+    "*.es",
+    "*.es6",
+    "*.frag",
+    "*.gs",
+    "*.jake",
+    "*.javascript",
+    "*.jsb",
+    "*.jscad",
+    "*.jsfl",
+    "*.jslib",
+    "*.jsm",
+    "*.jspre",
+    "*.jss",
+    "*.jsx",
+    "*.mjs",
+    "*.njs",
+    "*.pac",
+    "*.sjs",
+    "*.ssjs",
+    "*.xsjs",
+    "*.xsjslib",
+];
+const FILENAMES_RUBY: [&str; 45] = [
+    ".irbrc",
+    "pryrc",
+    ".simplecov",
+    "Appraisals",
+    "Berksfile",
+    "Brewfile",
+    "Buildfile",
+    "Capfile",
+    "Dangerfile",
+    "Deliverfile",
+    "Fastfile",
+    "Gemfile",
+    "Guardfile",
+    "Jarfile",
+    "Mavenfile",
+    "Podfile",
+    "Puppetfile",
+    "Rakefile",
+    "Snapfile",
+    "Steepfile",
+    "Thorfile",
+    "Vagrantfile",
+    "buildfile",
+    "*.rb",
+    "*.builder",
+    "*.eye",
+    "*.fcgi",
+    "*.gemspec",
+    "*.god",
+    "*.jbuilder",
+    "*.mspec",
+    "*.pluginspec",
+    "*.podspec",
+    "*.prawn",
+    "*.rabl",
+    "*.rake",
+    "*.rbi",
+    "*.rbuild",
+    "*.rbw",
+    "*.rbx",
+    "*.ru",
+    "*.ruby",
+    "*.spec",
+    "*.thor",
+    "*.watchr",
+];
+const FILENAMES_ERBEJS: [&str; 5] = ["*.ejs", "*.ect", "*.ejs.t", "*.jst", "*.erb"];
+const FILENAMES_PYTHON: [&str; 22] = [
+    ".gclient",
+    "DEPS",
+    "SConscript",
+    "SConstruct",
+    "wscript",
+    "*.py",
+    "*.cgi",
+    "*.fcgi",
+    "*.gyp",
+    "*.gypi",
+    "*.lmi",
+    "*.py3",
+    "*.pyde",
+    "*.pyi",
+    "*.pyp",
+    "*.pyt",
+    "*.pyw",
+    "*.rpy",
+    "*.spec",
+    "*.tac",
+    "*.wsgi",
+    "*.xpy",
+];
+const FILENAMES_CPP: [&str; 10] = [
+    "*.cpp", "*.c++", "*.cc", "*.cxx", "*.cppm", "*.hpp", "*.h++", "*.hh", "*.hxx", "*.txx",
 ];
 const FILENAMES_JSON: [&str; 66] = [
     ".all-contributorsrc",
@@ -123,62 +241,13 @@ const FILENAMES_JSON: [&str; 66] = [
     "*.jsonld",
     "*.jq",
 ];
-const FILENAMES_ERBEJS: [&str; 5] = ["*.ejs", "*.ect", "*.ejs.t", "*.jst", "*.erb"];
-const FILENAMES_JULIA: [&str; 1] = ["*.jl"];
-const FILENAMES_SCALA: [&str; 4] = ["*.scala", "*.kojo", "*.sbt", "*.sc"];
-const FILENAMES_C: [&str; 3] = ["*.c", "*.h", "*.h.in"];
-const FILENAMES_RUBY: [&str; 45] = [
-    ".irbrc",
-    "pryrc",
-    ".simplecov",
-    "Appraisals",
-    "Berksfile",
-    "Brewfile",
-    "Buildfile",
-    "Capfile",
-    "Dangerfile",
-    "Deliverfile",
-    "Fastfile",
-    "Gemfile",
-    "Guardfile",
-    "Jarfile",
-    "Mavenfile",
-    "Podfile",
-    "Puppetfile",
-    "Rakefile",
-    "Snapfile",
-    "Steepfile",
-    "Thorfile",
-    "Vagrantfile",
-    "buildfile",
-    "*.rb",
-    "*.builder",
-    "*.eye",
-    "*.fcgi",
-    "*.gemspec",
-    "*.god",
-    "*.jbuilder",
-    "*.mspec",
-    "*.pluginspec",
-    "*.podspec",
-    "*.prawn",
-    "*.rabl",
-    "*.rake",
-    "*.rbi",
-    "*.rbuild",
-    "*.rbw",
-    "*.rbx",
-    "*.ru",
-    "*.ruby",
-    "*.spec",
-    "*.thor",
-    "*.watchr",
-];
-const FILENAMES_CPP: [&str; 10] = [
-    "*.cpp", "*.c++", "*.cc", "*.cxx", "*.cppm", "*.hpp", "*.h++", "*.hh", "*.hxx", "*.txx",
-];
-const FILENAMES_RUST: [&str; 2] = ["*.rs", "*.rs.in"];
+const FILENAMES_GO: [&str; 1] = ["*.go"];
 const FILENAMES_AGDA: [&str; 1] = ["*.agda"];
+const FILENAMES_SCALA: [&str; 4] = ["*.scala", "*.kojo", "*.sbt", "*.sc"];
+const FILENAMES_TYPESCRIPT: [&str; 3] = ["*.ts", "*.cts", "*.mts"];
+const FILENAMES_RUST: [&str; 2] = ["*.rs", "*.rs.in"];
+const FILENAMES_VERILOG: [&str; 2] = ["*.v", "*.veo"];
+const FILENAMES_C: [&str; 3] = ["*.c", "*.h", "*.h.in"];
 const FILENAMES_HTML: [&str; 7] = [
     "*.html",
     "*.hta",
@@ -188,77 +257,8 @@ const FILENAMES_HTML: [&str; 7] = [
     "*.xht",
     "*.xhtml",
 ];
-const FILENAMES_CSHARP: [&str; 4] = ["*.cs", "*.cake", "*.cs.pp", "*.csx"];
-const FILENAMES_BASH: [&str; 11] = [
-    "*.sh",
-    "*.bash",
-    ".bash_aliases",
-    ".bash_functions",
-    ".bash_history",
-    ".bash_logout",
-    ".bash_profile",
-    ".bashrc",
-    ".envrc",
-    ".login",
-    ".profile",
-];
-const FILENAMES_JAVA: [&str; 3] = ["*.java", "*.jav", "*.jsh"];
-const FILENAMES_JAVASCRIPT: [&str; 26] = [
-    "Jakefile",
-    "*.js",
-    "*._js",
-    "*.bones",
-    "*.cjs",
-    "*.es",
-    "*.es6",
-    "*.frag",
-    "*.gs",
-    "*.jake",
-    "*.javascript",
-    "*.jsb",
-    "*.jscad",
-    "*.jsfl",
-    "*.jslib",
-    "*.jsm",
-    "*.jspre",
-    "*.jss",
-    "*.jsx",
-    "*.mjs",
-    "*.njs",
-    "*.pac",
-    "*.sjs",
-    "*.ssjs",
-    "*.xsjs",
-    "*.xsjslib",
-];
-const FILENAMES_REGEX: [&str; 2] = ["*.regexp", "*.regex"];
-const FILENAMES_TYPESCRIPT: [&str; 3] = ["*.ts", "*.cts", "*.mts"];
-const FILENAMES_GO: [&str; 1] = ["*.go"];
-const FILENAMES_CSS: [&str; 1] = ["*.css"];
-const FILENAMES_PYTHON: [&str; 22] = [
-    ".gclient",
-    "DEPS",
-    "SConscript",
-    "SConstruct",
-    "wscript",
-    "*.py",
-    "*.cgi",
-    "*.fcgi",
-    "*.gyp",
-    "*.gypi",
-    "*.lmi",
-    "*.py3",
-    "*.pyde",
-    "*.pyi",
-    "*.pyp",
-    "*.pyt",
-    "*.pyw",
-    "*.rpy",
-    "*.spec",
-    "*.tac",
-    "*.wsgi",
-    "*.xpy",
-];
+const FILENAMES_HASKELL: [&str; 3] = ["*.hs", "*.hs-boot", "*.hsc"];
+const FILENAMES_JULIA: [&str; 1] = ["*.jl"];
 
 pub static mut SHEBANG: BTreeMap<Languages, &[&str]> = BTreeMap::new();
 const SHEBANG_BASH: [&str; 5] = [
@@ -277,29 +277,29 @@ fn init_modelines_map() {
 
 fn init_filenames_map() {
     unsafe {
-        FILENAMES.insert(Languages::Haskell, &FILENAMES_HASKELL);
-        FILENAMES.insert(Languages::Verilog, &FILENAMES_VERILOG);
-        FILENAMES.insert(Languages::Ocaml, &FILENAMES_OCAML);
-        FILENAMES.insert(Languages::Php, &FILENAMES_PHP);
-        FILENAMES.insert(Languages::Json, &FILENAMES_JSON);
-        FILENAMES.insert(Languages::ErbEjs, &FILENAMES_ERBEJS);
-        FILENAMES.insert(Languages::Julia, &FILENAMES_JULIA);
-        FILENAMES.insert(Languages::Scala, &FILENAMES_SCALA);
-        FILENAMES.insert(Languages::C, &FILENAMES_C);
-        FILENAMES.insert(Languages::Ruby, &FILENAMES_RUBY);
-        FILENAMES.insert(Languages::Cpp, &FILENAMES_CPP);
-        FILENAMES.insert(Languages::Rust, &FILENAMES_RUST);
-        FILENAMES.insert(Languages::Agda, &FILENAMES_AGDA);
-        FILENAMES.insert(Languages::Html, &FILENAMES_HTML);
         FILENAMES.insert(Languages::CSharp, &FILENAMES_CSHARP);
+        FILENAMES.insert(Languages::Css, &FILENAMES_CSS);
+        FILENAMES.insert(Languages::Regex, &FILENAMES_REGEX);
+        FILENAMES.insert(Languages::Php, &FILENAMES_PHP);
+        FILENAMES.insert(Languages::Ocaml, &FILENAMES_OCAML);
         FILENAMES.insert(Languages::Bash, &FILENAMES_BASH);
         FILENAMES.insert(Languages::Java, &FILENAMES_JAVA);
         FILENAMES.insert(Languages::Javascript, &FILENAMES_JAVASCRIPT);
-        FILENAMES.insert(Languages::Regex, &FILENAMES_REGEX);
-        FILENAMES.insert(Languages::Typescript, &FILENAMES_TYPESCRIPT);
-        FILENAMES.insert(Languages::Go, &FILENAMES_GO);
-        FILENAMES.insert(Languages::Css, &FILENAMES_CSS);
+        FILENAMES.insert(Languages::Ruby, &FILENAMES_RUBY);
+        FILENAMES.insert(Languages::ErbEjs, &FILENAMES_ERBEJS);
         FILENAMES.insert(Languages::Python, &FILENAMES_PYTHON);
+        FILENAMES.insert(Languages::Cpp, &FILENAMES_CPP);
+        FILENAMES.insert(Languages::Json, &FILENAMES_JSON);
+        FILENAMES.insert(Languages::Go, &FILENAMES_GO);
+        FILENAMES.insert(Languages::Agda, &FILENAMES_AGDA);
+        FILENAMES.insert(Languages::Scala, &FILENAMES_SCALA);
+        FILENAMES.insert(Languages::Typescript, &FILENAMES_TYPESCRIPT);
+        FILENAMES.insert(Languages::Rust, &FILENAMES_RUST);
+        FILENAMES.insert(Languages::Verilog, &FILENAMES_VERILOG);
+        FILENAMES.insert(Languages::C, &FILENAMES_C);
+        FILENAMES.insert(Languages::Html, &FILENAMES_HTML);
+        FILENAMES.insert(Languages::Haskell, &FILENAMES_HASKELL);
+        FILENAMES.insert(Languages::Julia, &FILENAMES_JULIA);
     }
 }
 
