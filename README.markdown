@@ -7,57 +7,7 @@ analysing files syntactically rather than linearly.
 Roadmap
 -------
 
-- [ ] Backend
-  - [x] `Node` to IR
-  - [x] Diff/patch
-  - [x] Extract data/metadata from `Node`s
-  - [x] Formatting preservation
-  - [x] IR serialisation
-  - [x] Merge
-  - [ ] Linguist
-    - [x] Filetype linguist
-	- [x] Binary file identification
-	- [ ] Extend configuration
-  - [x] Linear diff
-  - [ ] Diff optimisation
-	- [x] ε-reduction
-	- [x] Reduction to graph problem
-	- [ ] Diff heuristics
-  - [ ] Custom parsers
-  - [ ] Git
-	- [ ] Index
-	  - [ ] Diff storage
-	    - [ ] Code files
-	    - [ ] Plain text/unidentified files
-	    - [ ] Binary files
-- [ ] Frontend
-  - [ ] Diff pretty-printer
-  - [ ] Merge conflict pretty-printer
-  - [ ] Git commands
-	- [ ] Config and setup
-      - [ ] init
-	  - [ ] config
-	  - [ ] ignore file
-	  - [ ] attributes file (linguist override)
-	- [ ] Index operations
-	  - [ ] add
-	  - [ ] rm
-	  - [ ] (mv)
-	  - [ ] status
-	  - [ ] diff
-	- [ ] Revision and branching operations
-	  - [ ] commit
-	  - [ ] tag
-	  - [ ] log
-	  - [ ] reset
-	  - [ ] branch
-	  - [ ] checkout
-	  - [ ] merge
-	- [ ] Remotes
-	  - [ ] general remote management
-	  - [ ] push
-	  - [ ] pull
-  - [ ] User manual
+The next goal is to have Git's essential features. See the [roadmap](./ROADMAP.markdown).
 
 Internals
 ---------
