@@ -18,20 +18,45 @@ Roadmap
     - [x] Filetype linguist
 	- [x] Binary file identification
 	- [ ] Extend configuration
-  - [ ] Linear diff
-  - [ ] Diff storage
-	- [ ] Code files
-	- [ ] Plain text/unidentified files
-	- [ ] Binary files
+  - [x] Linear diff
   - [ ] Diff optimisation
 	- [x] ε-reduction
 	- [x] Reduction to graph problem
 	- [ ] Diff heuristics
   - [ ] Custom parsers
+  - [ ] Git
+	- [ ] Index
+	  - [ ] Diff storage
+	    - [ ] Code files
+	    - [ ] Plain text/unidentified files
+	    - [ ] Binary files
 - [ ] Frontend
   - [ ] Diff pretty-printer
   - [ ] Merge conflict pretty-printer
-  - [ ] Git idk
+  - [ ] Git commands
+	- [ ] Config and setup
+      - [ ] init
+	  - [ ] config
+	  - [ ] ignore file
+	  - [ ] attributes file (linguist override)
+	- [ ] Index operations
+	  - [ ] add
+	  - [ ] rm
+	  - [ ] (mv)
+	  - [ ] status
+	  - [ ] diff
+	- [ ] Revision and branching operations
+	  - [ ] commit
+	  - [ ] tag
+	  - [ ] log
+	  - [ ] reset
+	  - [ ] branch
+	  - [ ] checkout
+	  - [ ] merge
+	- [ ] Remotes
+	  - [ ] general remote management
+	  - [ ] push
+	  - [ ] pull
   - [ ] User manual
 
 Internals

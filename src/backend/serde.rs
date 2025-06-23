@@ -4,6 +4,7 @@ use crate::backend::{
     data::Data,
     diff::Diff,
     metadata::Metadata,
+    ADDR_BYTES,
 };
 
 use std::{collections::HashMap, ops::Range, rc::Rc};
@@ -217,8 +218,6 @@ pub(crate) fn serialise<'a>(d: Rc<Diff<'a>>, r: &mut Ranges, tr: &mut TextRanges
         }
     }
 }
-
-const ADDR_BYTES: usize = (usize::BITS / 8) as usize;
 
 fn u16_to_nt(x: u16) -> Option<u16> {
     if x == 0 {

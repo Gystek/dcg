@@ -648,8 +648,8 @@ _diff_ algorithm. Linear _diffs_ are merged in a similar fashion as tree _diffs_
 emulating a three-way merge.
 
 Binary files are stored _as-is_ on the filesystem given that it is more expensive both
-to compute and to store binary _diffs_. _Diffs_ are stored in the revision tree with a
-magic number header indicating their type.
+to compute and to store binary _diffs_. _Diffs_ are stored in the index (and later embedded
+in the commits) and the type of each diff is kept in an index-wide registry.
 
 = Performance
 

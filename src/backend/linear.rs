@@ -2,6 +2,8 @@ use std::{cmp::Ordering, rc::Rc};
 
 use imara_diff::{Algorithm, Diff, InternedInput};
 
+use crate::backend::ADDR_BYTES;
+
 #[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LinDiff<'a> {
     Add(&'a str),
@@ -147,9 +149,60 @@ pub(crate) fn merge<'a>(
     out
 }
 
+/*
+ * multi-byte values are stored in little endian
+ * order.  strings are null-terminated.
+ */
+pub(crate) fn serialise<'a>(dd: &[LinDiff<'a>]) -> Vec<u8> {
+    let mut out = vec![];
+
+    out.extend(dd.len().to_le_bytes());
+
+    for d in dd {
+        match d {
+            LinDiff::Eps => out.push(0),
+            LinDiff::Del => out.push(1),
+            LinDiff::Add(x) => {
+                out.push(2);
+                out.extend(x.as_bytes());
+                out.push(0);
+            }
+        }
+    }
+
+    out
+}
+
+pub(crate) fn deserialise<'a>(b: &'a [u8]) -> Vec<LinDiff<'a>> {
+    let mut i = ADDR_BYTES;
+
+    let mut out = Vec::with_capacity(usize::from_le_bytes(b[0..i].try_into().unwrap()));
+
+    while i < b.len() {
+        match b[i] {
+            0 => out.push(LinDiff::Eps),
+            1 => out.push(LinDiff::Del),
+            2 => {
+                let j = i + 1;
+
+                while i < b.len() && b[i] != 0 {
+                    i += 1;
+                }
+
+                out.push(LinDiff::Add(unsafe { str::from_utf8_unchecked(&b[j..i]) }));
+            }
+            _ => unreachable!(),
+        }
+
+        i += 1;
+    }
+
+    out
+}
+
 #[cfg(test)]
 mod test {
-    use super::{diff, merge, patch};
+    use super::{deserialise, diff, merge, patch, serialise};
 
     #[test]
     fn diff0() {
@@ -321,5 +374,32 @@ test"#;
 
         assert!(conflicts.is_empty());
         assert_eq!(expected, patch(&base_lines, &merge).unwrap().join("\n"));
+    }
+
+    #[test]
+    fn conservation() {
+        let left = r#"the
+history of all hitherto existing
+societies
+has been
+the history of
+class struggle
+"#;
+
+        /* grammar mistake is intentional */
+        let right = r#"the
+industrial revolution and
+its consequences
+has been
+a disaster for the
+human race
+"#;
+
+        let left_lines = left.lines().collect::<Vec<&str>>();
+        let right_lines = right.lines().collect::<Vec<&str>>();
+
+        let diff = diff(left, right, &left_lines, &right_lines);
+
+        assert_eq!(diff, deserialise(&serialise(&diff)));
     }
 }

@@ -1,3 +1,5 @@
+pub(crate) const ADDR_BYTES: usize = (usize::BITS / 8) as usize;
+
 pub(crate) mod bcst;
 pub(crate) mod data;
 pub(crate) mod diff;
