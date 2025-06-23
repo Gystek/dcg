@@ -7,32 +7,34 @@ Milestone 2 - (scarce) equivalent to Git
 ----------------------------------------
 
 - [ ] Config and setup
-  - [ ] init
+  - [ ] `init`
   - [ ] config
   - [ ] ignore file
   - [ ] attributes file (linguist override)
 - [ ] Index operations
+  - [x] Indexing/retrieving system
+  - [ ] Modification checker
+  - [ ] `add`
+  - [ ] `rm`
+  - [ ] (`mv`)
+  - [ ] `status`
+  - [ ] `diff`
+- [ ] Revision and branching operations
   - [ ] Diff storage
 	- [ ] Code files
 	- [ ] Plain text/unidentified files
 	- [ ] Binary files
-  - [ ] add
-  - [ ] rm
-  - [ ] (mv)
-  - [ ] status
-  - [ ] diff
-- [ ] Revision and branching operations
-  - [ ] commit
-  - [ ] tag
-  - [ ] log
-  - [ ] reset
-  - [ ] branch
-  - [ ] checkout
-  - [ ] merge
+  - [ ] `commit`
+  - [ ] `tag`
+  - [ ] `log`
+  - [ ] `reset`
+  - [ ] `branch`
+  - [ ] `checkout`
+  - [ ] `merge`
 - [ ] Remotes
   - [ ] general remote management
-  - [ ] push
-  - [ ] pull
+  - [ ] `push`
+  - [ ] `pull`
 - [ ] User manual
 
 Milestone 1 - (slow) equivalent to [difft](https://github.com/Wilfred/difftastic) and [mergiraf](https://mergiraf.org/)

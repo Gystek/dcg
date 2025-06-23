@@ -13,6 +13,7 @@ use backend::{
 use tree_sitter::Parser;
 
 mod backend;
+mod vcs;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -33,18 +34,12 @@ fn main() {
 
     let left_lang = guess_language(
         Path::new(left),
-        &filenames,
-        &shebang,
-        &modelines,
-        &heuristics,
+        (&filenames, &shebang, &modelines, &heuristics),
     )
     .unwrap();
     let right_lang = guess_language(
         Path::new(right),
-        &filenames,
-        &shebang,
-        &modelines,
-        &heuristics,
+        (&filenames, &shebang, &modelines, &heuristics),
     )
     .unwrap();
 

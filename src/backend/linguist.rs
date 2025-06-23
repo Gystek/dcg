@@ -40,14 +40,15 @@ pub(crate) fn get_ts_language(lng: Languages) -> Option<tree_sitter::Language> {
     }
 }
 
-pub(crate) fn guess_language(
-    file: &Path,
-    filenames: &BTreeMap<Languages, Vec<Pattern>>,
-    shebang: &BTreeMap<Languages, Vec<Pattern>>,
-    modelines: &BTreeMap<Languages, Vec<Pattern>>,
-    heuristics: &BTreeMap<Languages, Vec<Pattern>>,
-) -> io::Result<Languages> {
-    if let Ok(Some(lng)) = guess_language_utf8(file, filenames, shebang, modelines, heuristics) {
+pub(crate) type LinguistState<'a> = (
+    &'a BTreeMap<Languages, Vec<Pattern>>,
+    &'a BTreeMap<Languages, Vec<Pattern>>,
+    &'a BTreeMap<Languages, Vec<Pattern>>,
+    &'a BTreeMap<Languages, Vec<Pattern>>,
+);
+
+pub(crate) fn guess_language(file: &Path, state: LinguistState<'_>) -> io::Result<Languages> {
+    if let Ok(Some(lng)) = guess_language_utf8(file, state) {
         Ok(lng)
     } else {
         File::open(file)
@@ -58,10 +59,7 @@ pub(crate) fn guess_language(
 
 fn guess_language_utf8(
     file: &Path,
-    filenames: &BTreeMap<Languages, Vec<Pattern>>,
-    shebang: &BTreeMap<Languages, Vec<Pattern>>,
-    modelines: &BTreeMap<Languages, Vec<Pattern>>,
-    heuristics: &BTreeMap<Languages, Vec<Pattern>>,
+    (filenames, shebang, modelines, heuristics): LinguistState<'_>,
 ) -> io::Result<Option<Languages>> {
     match guess_filenames(file, filenames) {
         Some(lng) => Ok(Some(lng)),
