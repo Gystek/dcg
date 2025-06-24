@@ -66,8 +66,6 @@ fn replace_variables(s: &str) -> Result<String> {
 fn extract_config(p: &Path, cfg: Config) -> Result<Config> {
     let mut s = String::new();
 
-    println!("Extracting {:?}", p);
-
     File::open(p)?.read_to_string(&mut s)?;
 
     let new: Config = toml::from_str(&s)?;

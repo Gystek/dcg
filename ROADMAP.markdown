@@ -9,11 +9,11 @@ Milestone 2 - (scarce) equivalent to Git
 - [ ] Config and setup
   - [x] `init`
   - [x] config
-  - [ ] ignore file
+  - [x] ignore file
   - [ ] attributes file (linguist override)
 - [ ] Index operations
   - [x] Indexing/retrieving system
-  - [ ] `add`
+  - [x] `add`
   - [ ] `rm`
   - [ ] (`mv`)
   - [ ] `status`

@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::Result;
 
-use crate::{combine_paths, vcs::config::Config, NotificationLevel};
+use crate::{combine_paths, debug, info, vcs::config::Config, NotificationLevel};
 
 const REPO_DIRECTORIES: [&str; 7] = [
     "index/",
@@ -39,14 +39,18 @@ pub(crate) fn init(
     let reinit = if !p_directory.exists() {
         false
     } else {
+        debug!(lvl, "deleting existing .dcg directory");
         fs::remove_dir_all(&p_directory)?;
         true
     };
 
     fs::create_dir_all(&p_directory)?;
+    debug!(lvl, "creating .dcg directory in {:?}", &p_directory);
 
     for dir in REPO_DIRECTORIES {
         let pd = combine_paths!(&p_directory, Path::new(dir));
+
+        debug!(lvl, "created directory {:?}", pd);
 
         fs::create_dir_all(pd)?;
     }
@@ -54,23 +58,29 @@ pub(crate) fn init(
     File::create(combine_paths!(&p_directory, "refs/HEAD"))?
         .write_all(initial_branch.as_bytes())?;
 
+    debug!(
+        lvl,
+        "created '.dcg/refs/HEAD' pointing to '{}'", initial_branch
+    );
+
     File::create(combine_paths!(
         &p_directory,
         "refs/branches/",
         initial_branch
     ))?;
 
-    if lvl >= NotificationLevel::All {
-        println!(
-            "{} dcg repository in '{}'",
-            if reinit {
-                "Reinitialized"
-            } else {
-                "Initialized new"
-            },
-            directory.as_ref().unwrap_or(&".".to_string())
-        );
-    }
+    debug!(lvl, "created '.dcg/refs/branches/{}'", initial_branch);
+
+    info!(
+        lvl,
+        "{} dcg repository in '{}'",
+        if reinit {
+            "Reinitialized"
+        } else {
+            "Initialized new"
+        },
+        directory.as_ref().unwrap_or(&".".to_string())
+    );
 
     Ok(())
 }

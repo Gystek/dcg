@@ -1,5 +1,6 @@
 use clap::Subcommand;
 
+pub(crate) mod add;
 pub(crate) mod init;
 
 #[derive(Subcommand)]
@@ -14,5 +15,13 @@ pub(crate) enum Commands {
         initial_branch: Option<String>,
 
         directory: Option<String>,
+    },
+    /// add files to the dcg index
+    Add {
+        /// the paths to add to the index.  these can
+        /// contain globs (such as '*.rs') to add
+        /// multiple files.  folders will be added
+        /// recursively.
+        paths: Vec<String>,
     },
 }

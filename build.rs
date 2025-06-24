@@ -95,9 +95,10 @@ fn main() {
     for sect in ACCEPTED_SECTIONS {
         let big_sect = sect.to_ascii_uppercase();
 
-        linguist_code.push_str(&format!("\nfn init_{}_map() {{\n    unsafe {{\n", sect));
+        linguist_code.push_str(&format!("\nfn init_{}_map() {{\n", sect));
 
         if let Some(langs) = data_sections.get(sect) {
+            linguist_code.push_str("    unsafe {\n");
             for lang in langs.keys() {
                 linguist_code.push_str(&format!(
                     "        {}.insert(Languages::{}, &{}_{});\n",
@@ -107,8 +108,9 @@ fn main() {
                     lang.to_ascii_uppercase()
                 ));
             }
+            linguist_code.push_str("    }\n");
         }
-        linguist_code.push_str("    }\n}\n");
+        linguist_code.push_str("}\n");
     }
 
     linguist_code.push_str("pub(crate) fn init_all_maps() {\n");

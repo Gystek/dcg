@@ -13,9 +13,15 @@ use crate::commands::Commands;
 #[derive(Parser)]
 #[command(version, about)]
 struct Dcg {
+    /// display debug messages
+    #[arg(short, long)]
+    debug: bool,
+
+    /// display only warning and error messages
     #[arg(short, long)]
     quiet: bool,
 
+    /// display only error messages
     #[arg(short, long)]
     silent: bool,
 
@@ -25,21 +31,66 @@ struct Dcg {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum NotificationLevel {
-    All,
+    Debug,
+    Normal,
     Warnings,
     Errors,
 }
 
+#[macro_export]
+macro_rules! info {
+    ($lvl:expr, $($arg:tt)*) => {{
+	if ($lvl >= NotificationLevel::Normal) {
+	    println!($($arg)*);
+	}
+    }};
+}
+
+#[macro_export]
+macro_rules! debug {
+    ($lvl:expr, $($arg:tt)*) => {{
+	if ($lvl >= NotificationLevel::Debug) {
+	    print!("DEBUG\t");
+	    println!($($arg)*);
+	}
+    }};
+}
+
+#[macro_export]
+macro_rules! warning {
+    ($lvl:expr, $($arg:tt)*) => {{
+	if ($lvl >= NotificationLevel::Warnings) {
+	    print!("\x1b[0;33mWARNING\x1b[0m\t");
+	    println!($($arg)*);
+	}
+    }};
+}
+
+#[macro_export]
+macro_rules! error {
+    ($lvl:expr, $($arg:tt)*) => {{
+	if ($lvl >= NotificationLevel::Errors) {
+	    print!("\x1b[0;1mERROR\x1b[0m\t");
+	    println!($($arg)*);
+	}
+    }};
+}
+
 impl Ord for NotificationLevel {
     fn cmp(&self, other: &Self) -> Ordering {
-        match (self, other) {
-            (Self::All, Self::Warnings) => Ordering::Greater,
-            (Self::All, Self::Errors) => Ordering::Greater,
-            (Self::Warnings, Self::All) => Ordering::Less,
-            (Self::Warnings, Self::Errors) => Ordering::Greater,
-            (Self::Errors, Self::All) => Ordering::Less,
-            (Self::Errors, Self::Warnings) => Ordering::Less,
-            _ => Ordering::Equal,
+        if self == other {
+            Ordering::Equal
+        } else {
+            match (self, other) {
+                (Self::Debug, _) => Ordering::Greater,
+                (_, Self::Debug) => Ordering::Less,
+                (Self::Normal, Self::Warnings) => Ordering::Greater,
+                (Self::Normal, Self::Errors) => Ordering::Greater,
+                (Self::Warnings, Self::Normal) => Ordering::Less,
+                (Self::Warnings, Self::Errors) => Ordering::Greater,
+                (Self::Errors, _) => Ordering::Less,
+                _ => unreachable!(),
+            }
         }
     }
 }
@@ -53,21 +104,21 @@ impl PartialOrd for NotificationLevel {
 fn try_main() -> Result<()> {
     let args = Dcg::parse();
 
-    let lvl = match (args.silent, args.quiet) {
-        (true, _) => NotificationLevel::Errors,
-        (_, true) => NotificationLevel::Warnings,
-        _ => NotificationLevel::All,
+    let lvl = match (args.debug, args.silent, args.quiet) {
+        (true, _, _) => NotificationLevel::Debug,
+        (_, true, _) => NotificationLevel::Errors,
+        (_, _, true) => NotificationLevel::Warnings,
+        _ => NotificationLevel::Normal,
     };
 
     let cfg = read_config()?;
-
-    println!("{:?}", cfg);
 
     match &args.command {
         Commands::Init {
             initial_branch,
             directory,
         } => commands::init::init(initial_branch, directory, &cfg, lvl),
+        Commands::Add { paths } => commands::add::add(paths, &cfg, lvl),
     }
 }
 
@@ -75,7 +126,7 @@ fn main() {
     match try_main() {
         Ok(_) => exit(0),
         Err(e) => {
-            eprintln!("{}", e);
+            error!(NotificationLevel::Errors, "{}", e);
             exit(1);
         }
     }
