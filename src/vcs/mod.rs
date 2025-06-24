@@ -1,4 +1,5 @@
-mod index;
+pub(crate) mod config;
+pub(crate) mod index;
 
 pub(crate) const DCG_DIR: &str = ".dcg/";
 pub(crate) const INDEX_DIR: &str = "index/";
@@ -8,8 +9,8 @@ pub(crate) const BASE_DIR: &str = "base/";
 
 #[macro_export]
 macro_rules! combine_paths {
-    ($($path:expr),+) => {{
-	let mut path = std::path::PathBuf::new();
+    ($first:expr $(,$path:expr)+) => {{
+	let mut path = std::path::Path::new(&$first).to_path_buf();
 
 	$(
 	    path = path.join($path);

@@ -40,12 +40,17 @@ impl<'a> Object<'a> {
         })
     }
 
-    pub(crate) fn read(wd: &'a Path, path: &'a Path) -> io::Result<([u8; 32], Vec<u8>)> {
+    pub(crate) fn read(wd: &'a Path, path: &'a Path) -> io::Result<Option<([u8; 32], Vec<u8>)>> {
         let index = combine_paths!(wd, Path::new(DCG_DIR), Path::new(INDEX_DIR));
 
+        let hash_p = combine_paths!(&index, path);
         let mut hash_s = String::new();
 
-        File::open(combine_paths!(&index, path))?.read_to_string(&mut hash_s)?;
+        if !hash_p.exists() {
+            return Ok(None);
+        }
+
+        File::open(hash_p)?.read_to_string(&mut hash_s)?;
 
         let hash = hex::decode(hash_s).unwrap_or(vec![0; 32]);
 
@@ -61,7 +66,9 @@ impl<'a> Object<'a> {
         let mut decoder = GzDecoder::new(contents);
         decoder.write_all(&gz_contents)?;
 
-        decoder.finish().map(|x| (hash.try_into().unwrap(), x))
+        decoder
+            .finish()
+            .map(|x| Some((hash.try_into().unwrap(), x)))
     }
 
     pub(crate) fn write(&self, wd: &'a Path) -> io::Result<usize> {
@@ -100,5 +107,3 @@ impl<'a> Object<'a> {
         Ok(gz_contents.len())
     }
 }
-
-pub(crate) type Index<'a> = Vec<Object<'a>>;

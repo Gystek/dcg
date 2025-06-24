@@ -7,13 +7,12 @@ Milestone 2 - (scarce) equivalent to Git
 ----------------------------------------
 
 - [ ] Config and setup
-  - [ ] `init`
-  - [ ] config
+  - [x] `init`
+  - [x] config
   - [ ] ignore file
   - [ ] attributes file (linguist override)
 - [ ] Index operations
   - [x] Indexing/retrieving system
-  - [ ] Modification checker
   - [ ] `add`
   - [ ] `rm`
   - [ ] (`mv`)
@@ -59,6 +58,7 @@ Milestone 3 - glitter, speed and extensibility
 ---------------------------------------
 
 - [ ] Diff pretty-printer
+- [ ] Extend configuration
 - [ ] Merge conflict pretty-printer
 - [ ] Linguist improvements
   - [ ] Custom parsers

@@ -1,95 +1,80 @@
-use std::{env, fs::File, io::Read, path::Path, process::exit, rc::Rc};
+use std::{cmp::Ordering, process::exit};
 
-use backend::{
-    bcst::{diff_wrapper, BCSTree},
-    diff::ered,
-    languages::{
-        compile_filenames_map, compile_heuristics_map, compile_modelines_map, compile_shebang_map,
-        init_all_maps,
-    },
-    linguist::{get_ts_language, guess_language},
-    rcst::RCSTree,
-};
-use tree_sitter::Parser;
+use anyhow::Result;
+use clap::Parser;
+use vcs::config::read_config;
 
 mod backend;
+mod commands;
 mod vcs;
 
+use crate::commands::Commands;
+
+#[derive(Parser)]
+#[command(version, about)]
+struct Dcg {
+    #[arg(short, long)]
+    quiet: bool,
+
+    #[arg(short, long)]
+    silent: bool,
+
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum NotificationLevel {
+    All,
+    Warnings,
+    Errors,
+}
+
+impl Ord for NotificationLevel {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Self::All, Self::Warnings) => Ordering::Greater,
+            (Self::All, Self::Errors) => Ordering::Greater,
+            (Self::Warnings, Self::All) => Ordering::Less,
+            (Self::Warnings, Self::Errors) => Ordering::Greater,
+            (Self::Errors, Self::All) => Ordering::Less,
+            (Self::Errors, Self::Warnings) => Ordering::Less,
+            _ => Ordering::Equal,
+        }
+    }
+}
+
+impl PartialOrd for NotificationLevel {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn try_main() -> Result<()> {
+    let args = Dcg::parse();
+
+    let lvl = match (args.silent, args.quiet) {
+        (true, _) => NotificationLevel::Errors,
+        (_, true) => NotificationLevel::Warnings,
+        _ => NotificationLevel::All,
+    };
+
+    let cfg = read_config()?;
+
+    match &args.command {
+        Commands::Init {
+            initial_branch,
+            directory,
+        } => commands::init::init(initial_branch, directory, cfg, lvl),
+    }
+}
+
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() != 3 {
-        exit(1);
+    match try_main() {
+        Ok(_) => exit(0),
+        Err(e) => {
+            eprintln!("{}", e);
+            exit(1);
+        }
     }
-
-    let left = &args[1];
-    let right = &args[2];
-
-    /* language identification */
-    init_all_maps();
-    let filenames = compile_filenames_map();
-    let shebang = compile_shebang_map();
-    let modelines = compile_modelines_map();
-    let heuristics = compile_heuristics_map();
-
-    let left_lang = guess_language(
-        Path::new(left),
-        (&filenames, &shebang, &modelines, &heuristics),
-    )
-    .unwrap();
-    let right_lang = guess_language(
-        Path::new(right),
-        (&filenames, &shebang, &modelines, &heuristics),
-    )
-    .unwrap();
-
-    if left_lang != right_lang {
-        eprintln!("Cannot AST-diff two files not of the same language:");
-        eprintln!(
-            "\t'{}' is in {:?} whereas '{}' is in {:?}",
-            left, left_lang, right, right_lang
-        );
-        return;
-    }
-
-    println!("Identified language: {:?}", left_lang);
-
-    let ts_language = get_ts_language(left_lang).unwrap();
-
-    /* file reading */
-    let mut lf = File::open(left).unwrap();
-    let mut rf = File::open(right).unwrap();
-
-    let mut lc = String::new();
-    let mut rc = String::new();
-
-    lf.read_to_string(&mut lc).unwrap();
-    rf.read_to_string(&mut rc).unwrap();
-
-    /* parsing */
-
-    let mut parser = Parser::new();
-
-    parser.set_language(&ts_language).unwrap();
-
-    let ltree = parser.parse(&lc, None).unwrap();
-    let rtree = parser.parse(&rc, None).unwrap();
-
-    let lnode = ltree.root_node();
-    let rnode = rtree.root_node();
-
-    let lrcst = RCSTree::from(lnode, &lc);
-    let rrcst = RCSTree::from(rnode, &rc);
-
-    let lbcst: (BCSTree, usize) = lrcst.into();
-    let rbcst: (BCSTree, usize) = rrcst.into();
-    let lbcst = (Rc::new(lbcst.0), lbcst.1);
-    let rbcst = (Rc::new(rbcst.0), lbcst.1);
-
-    /* diffing */
-
-    let diff = ered(diff_wrapper(lbcst.clone(), rbcst.clone()));
-
-    println!("{:#?}", diff);
-    println!("weight {}", diff.weight());
 }
