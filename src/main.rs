@@ -61,11 +61,13 @@ fn try_main() -> Result<()> {
 
     let cfg = read_config()?;
 
+    println!("{:?}", cfg);
+
     match &args.command {
         Commands::Init {
             initial_branch,
             directory,
-        } => commands::init::init(initial_branch, directory, cfg, lvl),
+        } => commands::init::init(initial_branch, directory, &cfg, lvl),
     }
 }
 

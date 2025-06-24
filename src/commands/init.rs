@@ -22,13 +22,13 @@ const REPO_DIRECTORIES: [&str; 7] = [
 pub(crate) fn init(
     initial_branch: &Option<String>,
     directory: &Option<String>,
-    cfg: Config,
+    cfg: &Config,
     lvl: NotificationLevel,
 ) -> Result<()> {
     let initial_branch = initial_branch
         .as_ref()
-        .or(cfg.init.default_branch.as_ref())
-        .unwrap();
+        .or(cfg.init.as_ref().and_then(|x| x.default_branch.as_ref()))
+        .map_or("master", String::as_str);
     let p_directory = combine_paths!(
         directory
             .as_ref()
@@ -62,7 +62,7 @@ pub(crate) fn init(
 
     if lvl >= NotificationLevel::All {
         println!(
-            "{} dcg repository in '{}'\n",
+            "{} dcg repository in '{}'",
             if reinit {
                 "Reinitialized"
             } else {

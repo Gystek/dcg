@@ -9,19 +9,10 @@ use std::{
     path::Path,
 };
 
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Deserialize, Merge, Clone, Debug, Default)]
 pub(crate) struct Config {
-    pub(crate) user: User,
-    pub(crate) init: Init,
-}
-
-impl Config {
-    fn merge(self, other: Self) -> Self {
-        Self {
-            user: self.user.merge(other.user),
-            init: self.init.merge(other.init),
-        }
-    }
+    pub(crate) user: Option<User>,
+    pub(crate) init: Option<Init>,
 }
 
 #[derive(Deserialize, Merge, Clone, Debug, Default)]
@@ -44,12 +35,12 @@ impl Default for Init {
 }
 
 pub(crate) const CONFIG_PATHS: [&str; 6] = [
-    "/etc/dcgconfig",
-    "$XDG_CONFIG_HOME$/dcg/config",
-    "$HOME$/.config/dcg/config",
-    "$HOME$/.dcgconfig",
-    "$PWD$/.dcg/config",
-    "$PWD$/.dcgconfig",
+    "/etc/dcgconfig.toml",
+    "$XDG_CONFIG_HOME$/dcg/config.toml",
+    "$HOME$/.config/dcg/config.toml",
+    "$HOME$/.dcgconfig.toml",
+    "$PWD$/.dcg/config.toml",
+    "$PWD$/.dcgconfig.toml",
 ];
 
 fn replace_variables(s: &str) -> Result<String> {
@@ -72,14 +63,16 @@ fn replace_variables(s: &str) -> Result<String> {
     Ok(out)
 }
 
-fn extract_config(p: &Path, cfg: &mut Config) -> Result<()> {
+fn extract_config(p: &Path, cfg: Config) -> Result<Config> {
     let mut s = String::new();
+
+    println!("Extracting {:?}", p);
 
     File::open(p)?.read_to_string(&mut s)?;
 
     let new: Config = toml::from_str(&s)?;
 
-    Ok(())
+    Ok(cfg.merge(new))
 }
 
 pub(crate) fn read_config() -> Result<Config> {
@@ -90,7 +83,7 @@ pub(crate) fn read_config() -> Result<Config> {
         let path = Path::new(&path);
 
         if path.exists() {
-            extract_config(path, &mut config)?;
+            config = extract_config(path, config)?;
         }
     }
 
