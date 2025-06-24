@@ -71,28 +71,57 @@ impl<'a> Object<'a> {
             .map(|x| Some((hash.try_into().unwrap(), x)))
     }
 
-    pub(crate) fn write(&self, wd: &'a Path) -> io::Result<usize> {
-        let index = combine_paths!(wd, Path::new(DCG_DIR), Path::new(INDEX_DIR));
+    pub(crate) fn delete(wd: &'a Path, path: &'a Path) -> io::Result<()> {
+        let fname = get_fname(path);
 
-        let parent = self
-            .path
-            .parent()
-            .map(Path::to_path_buf)
-            .unwrap_or_default();
-        let fname = self.path.file_name().and_then(|x| x.to_str()).unwrap_or("");
+        if fname.is_empty() {
+            return Ok(());
+        }
+
+        let virtual_parent = get_virtual_parent(wd, path);
+
+        if !virtual_parent.exists() {
+	    return Ok(());
+        }
+
+	let symlink = combine_paths!(&virtual_parent, Path::new(fname));
+
+	if !symlink.exists() {
+	    return Ok(());
+	}
+
+	let mut hash_s = String::new();
+
+	File::open(&symlink)?.read_to_string(&mut hash_s)?;
+
+	let virtual_file = combine_paths!(&virtual_parent, Path::new(hash_s.trim()));
+
+	fs::remove_file(virtual_file)?;
+	fs::remove_file(symlink)
+    }
+
+    pub(crate) fn write(&self, wd: &'a Path) -> io::Result<usize> {
+        let fname = get_fname(self.path);
 
         if fname.is_empty() {
             return Ok(0);
         }
 
-        let virtual_parent = combine_paths!(index, parent);
+        let virtual_parent = get_virtual_parent(wd, self.path);
 
         if !virtual_parent.exists() {
             fs::create_dir_all(&virtual_parent)?;
         }
 
         let symlink = combine_paths!(&virtual_parent, Path::new(fname));
-        let hash_s = hex::encode(self.hash);
+
+	let mut unique_hash = self.hash;
+
+	for (i, byte) in self.path.as_os_str().as_encoded_bytes().iter().enumerate() {
+	    unique_hash[i % 32] ^= byte;
+	}
+	
+        let hash_s = hex::encode(unique_hash);
         let virtual_file = combine_paths!(&virtual_parent, Path::new(&hash_s));
 
         File::create(symlink)?.write_all(hash_s.as_bytes())?;
@@ -106,4 +135,16 @@ impl<'a> Object<'a> {
 
         Ok(gz_contents.len())
     }
+}
+
+fn get_virtual_parent(wd: &Path, path: &Path) -> PathBuf {
+    let index = combine_paths!(wd, Path::new(DCG_DIR), Path::new(INDEX_DIR));
+
+    let parent = path.parent().map(Path::to_path_buf).unwrap_or_default();
+
+    combine_paths!(index, parent)
+}
+
+fn get_fname(path: &Path) -> &str {
+    path.file_name().and_then(|x| x.to_str()).unwrap_or("")
 }

@@ -119,6 +119,7 @@ fn try_main() -> Result<()> {
             directory,
         } => commands::init::init(initial_branch, directory, &cfg, lvl),
         Commands::Add { paths } => commands::add::add(paths, &cfg, lvl),
+        Commands::Rm { paths } => commands::rm::rm(paths, &cfg, lvl),
     }
 }
 

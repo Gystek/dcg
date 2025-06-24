@@ -9,26 +9,11 @@ use anyhow::Result;
 use glob::{glob, Pattern};
 
 use crate::{
+    commands::visit_dirs,
     debug,
     vcs::{config::Config, find_repo, index::Object},
     NotificationLevel,
 };
-
-fn visit_dirs(dir: &Path, cb: &dyn Fn(&Path) -> Result<()>) -> Result<()> {
-    if dir.is_dir() {
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path().into_boxed_path();
-
-            if path.is_dir() {
-                visit_dirs(&path, cb)?;
-            } else {
-                cb(&path)?;
-            }
-        }
-    }
-    Ok(())
-}
 
 fn get_ignored(dd: &Path) -> std::io::Result<Vec<Pattern>> {
     let ig = dd.join(Path::new(".dcgignore"));
@@ -66,7 +51,7 @@ fn add_file(
     Ok(())
 }
 
-pub(crate) fn add(paths: &[String], cfg: &Config, lvl: NotificationLevel) -> Result<()> {
+pub(crate) fn add(paths: &[String], _cfg: &Config, lvl: NotificationLevel) -> Result<()> {
     let wd = env::current_dir().map(fs::canonicalize)??.into_boxed_path();
     let dd = find_repo(&wd)?;
 

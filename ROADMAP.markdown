@@ -12,9 +12,9 @@ Milestone 2 - (scarce) equivalent to Git
   - [x] ignore file
   - [ ] attributes file (linguist override)
 - [ ] Index operations
-  - [x] Indexing/retrieving system
+  - [x] Indexing/retrieval system
   - [x] `add`
-  - [ ] `rm`
+  - [x] `rm`
   - [ ] (`mv`)
   - [ ] `status`
   - [ ] `diff`
