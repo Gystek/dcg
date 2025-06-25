@@ -7,6 +7,7 @@ edition = "2021"
 anyhow = "1.0.98"
 clap = { version = "4.5.40", features = ["derive"] }
 config_derive = { path = "./config_derive" }
+const_format = "0.2.32"
 content_inspector = "0.2.4"
 flate2 = { version = "1.1.2", features = ["zlib-rs"], default-features = false }
 glob = "0.3.2"

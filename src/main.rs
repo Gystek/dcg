@@ -1,6 +1,10 @@
 use std::{cmp::Ordering, process::exit};
 
 use anyhow::Result;
+use backend::languages::{
+    compile_filenames_map, compile_heuristics_map, compile_modelines_map, compile_shebang_map,
+    init_all_maps,
+};
 use clap::Parser;
 use vcs::config::read_config;
 
@@ -113,6 +117,15 @@ fn try_main() -> Result<()> {
 
     let cfg = read_config()?;
 
+    init_all_maps();
+
+    let filenames = compile_filenames_map();
+    let shebang = compile_shebang_map();
+    let modelines = compile_modelines_map();
+    let heuristics = compile_heuristics_map();
+
+    let state = (&filenames, &shebang, &modelines, &heuristics);
+
     match &args.command {
         Commands::Init {
             initial_branch,
@@ -121,6 +134,7 @@ fn try_main() -> Result<()> {
         Commands::Add { paths } => commands::add::add(paths, &cfg, lvl),
         Commands::Rm { paths } => commands::rm::rm(paths, &cfg, lvl),
         Commands::Status => commands::status::status(lvl),
+        Commands::Diff { files } => commands::diff::diff(files, state, &cfg, lvl),
     }
 }
 

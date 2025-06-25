@@ -4,6 +4,7 @@ use anyhow::Result;
 use clap::Subcommand;
 
 pub(crate) mod add;
+pub(crate) mod diff;
 pub(crate) mod init;
 pub(crate) mod rm;
 pub(crate) mod status;
@@ -53,4 +54,11 @@ pub(crate) enum Commands {
     },
     /// display the status of each file in the index
     Status,
+    /// display the diff between the last commit and the index
+    /// files
+    Diff {
+        /// the files to diff.  if empty, diff all files.  folders
+        /// are diff-ed recursively.
+        files: Vec<String>,
+    },
 }

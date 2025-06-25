@@ -19,6 +19,24 @@ pub(crate) enum PatchError<'a> {
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub(crate) struct MergeConflict<'a>(pub(crate) LinDiff<'a>, pub(crate) LinDiff<'a>);
 
+pub(crate) fn pretty_print(lines: &[&str], diff: &[LinDiff]) {
+    let mut i = 0;
+
+    for d in diff {
+        match d {
+            LinDiff::Add(x) => println!("\x1b[0;32m+ {}\x1b[0m", x),
+            LinDiff::Del => {
+                println!("\x1b[0;31m- {}\x1b[0m", lines[i]);
+                i += 1;
+            }
+            LinDiff::Eps => {
+                println!("  {}", lines[i]);
+                i += 1;
+            }
+        }
+    }
+}
+
 pub(crate) fn diff<'a>(
     left: &'a str,
     right: &'a str,

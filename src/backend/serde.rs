@@ -9,8 +9,8 @@ use crate::backend::{
 
 use std::{collections::HashMap, ops::Range, rc::Rc};
 
-type Ranges = HashMap<(Range<(usize, usize)>, Range<usize>), usize>;
-type TextRanges<'a> = HashMap<(Range<(usize, usize)>, Range<usize>, &'a str), usize>;
+pub(crate) type Ranges = HashMap<(Range<(usize, usize)>, Range<usize>), usize>;
+pub(crate) type TextRanges<'a> = HashMap<(Range<(usize, usize)>, Range<usize>, &'a str), usize>;
 
 type VecRanges = Vec<(Range<(usize, usize)>, Range<usize>)>;
 type VecTextRanges<'a> = Vec<(Range<(usize, usize)>, Range<usize>, &'a str)>;

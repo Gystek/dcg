@@ -31,7 +31,13 @@ impl<'a> Object<'a> {
         let mut contents = Vec::with_capacity(size);
         f.read_to_end(&mut contents)?;
 
-        let hash = Sha256::digest(&contents).into();
+        let mut hash: [u8; 32] = Sha256::digest(&contents).into();
+
+        let fname = path.strip_prefix(wd).unwrap_or(path);
+
+        for (i, byte) in fname.as_os_str().as_encoded_bytes().iter().enumerate() {
+            hash[i % 32] ^= byte;
+        }
 
         Ok(Self {
             path,
@@ -115,13 +121,7 @@ impl<'a> Object<'a> {
 
         let symlink = combine_paths!(&virtual_parent, fname);
 
-        let mut unique_hash = self.hash;
-
-        for (i, byte) in self.path.as_os_str().as_encoded_bytes().iter().enumerate() {
-            unique_hash[i % 32] ^= byte;
-        }
-
-        let hash_s = hex::encode(unique_hash);
+        let hash_s = hex::encode(self.hash);
         let virtual_file = combine_paths!(&virtual_parent, &hash_s);
 
         File::create(symlink)?.write_all(hash_s.as_bytes())?;

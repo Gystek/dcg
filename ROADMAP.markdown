@@ -6,18 +6,16 @@ Migrated from [the README](./README.markdown) for readability reasons.
 Milestone 2 - (scarce) equivalent to Git
 ----------------------------------------
 
-- [ ] Config and setup
+- [x] Config and setup
   - [x] `init`
   - [x] config
   - [x] ignore file
-  - [ ] attributes file (linguist override)
-- [ ] Index operations
+- [x] Index operations
   - [x] Indexing/retrieval system
   - [x] `add`
   - [x] `rm`
-  - [ ] (`mv`)
   - [x] `status`
-  - [ ] `diff`
+  - [x] `diff`
 - [ ] Revision and branching operations
   - [ ] Diff storage
 	- [ ] Code files
@@ -59,8 +57,10 @@ Milestone 3 - glitter, speed and extensibility
 
 - [ ] Diff pretty-printer
 - [ ] Extend configuration
+  - [ ] attributes file (linguist override)
 - [ ] Merge conflict pretty-printer
 - [ ] Linguist improvements
   - [ ] Custom parsers
   - [ ] Add language heuristics
 - [ ] Diff heuristics (and other optimisations)
+- [ ] Various linear diff algorithms

@@ -26,7 +26,7 @@ pub(crate) fn rm(paths: &[String], _cfg: &Config, lvl: NotificationLevel) -> Res
             let p = entry?.into_boxed_path();
 
             if p.is_dir() {
-                debug!(lvl, "recursively adding directory {:?}", &p);
+                debug!(lvl, "recursively removing directory {:?}", &p);
                 visit_dirs(&p, &mut |x| rm_file(x, &wd, dd, lvl))?;
             } else {
                 rm_file(&p, &wd, dd, lvl)?;

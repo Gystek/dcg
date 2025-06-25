@@ -9,18 +9,22 @@ use anyhow::Result;
 
 use crate::{
     combine_paths, debug, info,
-    vcs::{config::Config, DCG_DIR},
+    vcs::{
+        config::Config, BASE_DIR, BLOBS_DIR, BRANCHES_DIR, DCG_DIR, INDEX_DIR, LAST_DIR, REFS_DIR,
+        TAGS_DIR, TREE_DIR,
+    },
     NotificationLevel,
 };
 
-const REPO_DIRECTORIES: [&str; 7] = [
-    "index/",
-    "tree/",
-    "last/",
-    "base/",
-    "refs/",
-    "refs/branches/",
-    "refs/tags/",
+const REPO_DIRECTORIES: [&str; 8] = [
+    INDEX_DIR,
+    TREE_DIR,
+    LAST_DIR,
+    BASE_DIR,
+    BLOBS_DIR,
+    REFS_DIR,
+    BRANCHES_DIR,
+    TAGS_DIR,
 ];
 
 pub(crate) fn init(
@@ -59,21 +63,17 @@ pub(crate) fn init(
         fs::create_dir_all(pd)?;
     }
 
-    File::create(combine_paths!(&p_directory, "refs/HEAD"))?
+    File::create(combine_paths!(&p_directory, REFS_DIR, "HEAD"))?
         .write_all(initial_branch.as_bytes())?;
 
     debug!(
         lvl,
-        "created '.dcg/refs/HEAD' pointing to '{}'", initial_branch
+        "created '.dcg/{}HEAD' pointing to '{}'", REFS_DIR, initial_branch
     );
 
-    File::create(combine_paths!(
-        &p_directory,
-        "refs/branches/",
-        initial_branch
-    ))?;
+    File::create(combine_paths!(&p_directory, BRANCHES_DIR, initial_branch))?;
 
-    debug!(lvl, "created '.dcg/refs/branches/{}'", initial_branch);
+    debug!(lvl, "created '.dcg/{}{}'", BRANCHES_DIR, initial_branch);
 
     info!(
         lvl,
