@@ -16,7 +16,7 @@ Milestone 2 - (scarce) equivalent to Git
   - [x] `add`
   - [x] `rm`
   - [ ] (`mv`)
-  - [ ] `status`
+  - [x] `status`
   - [ ] `diff`
 - [ ] Revision and branching operations
   - [ ] Diff storage

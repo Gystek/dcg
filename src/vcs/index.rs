@@ -41,7 +41,7 @@ impl<'a> Object<'a> {
     }
 
     pub(crate) fn read(wd: &'a Path, path: &'a Path) -> io::Result<Option<([u8; 32], Vec<u8>)>> {
-        let index = combine_paths!(wd, Path::new(DCG_DIR), Path::new(INDEX_DIR));
+        let index = combine_paths!(wd, DCG_DIR, INDEX_DIR);
 
         let hash_p = combine_paths!(&index, path);
         let mut hash_s = String::new();
@@ -81,23 +81,23 @@ impl<'a> Object<'a> {
         let virtual_parent = get_virtual_parent(wd, path);
 
         if !virtual_parent.exists() {
-	    return Ok(());
+            return Ok(());
         }
 
-	let symlink = combine_paths!(&virtual_parent, Path::new(fname));
+        let symlink = combine_paths!(&virtual_parent, fname);
 
-	if !symlink.exists() {
-	    return Ok(());
-	}
+        if !symlink.exists() {
+            return Ok(());
+        }
 
-	let mut hash_s = String::new();
+        let mut hash_s = String::new();
 
-	File::open(&symlink)?.read_to_string(&mut hash_s)?;
+        File::open(&symlink)?.read_to_string(&mut hash_s)?;
 
-	let virtual_file = combine_paths!(&virtual_parent, Path::new(hash_s.trim()));
+        let virtual_file = combine_paths!(&virtual_parent, hash_s.trim());
 
-	fs::remove_file(virtual_file)?;
-	fs::remove_file(symlink)
+        fs::remove_file(virtual_file)?;
+        fs::remove_file(symlink)
     }
 
     pub(crate) fn write(&self, wd: &'a Path) -> io::Result<usize> {
@@ -113,16 +113,16 @@ impl<'a> Object<'a> {
             fs::create_dir_all(&virtual_parent)?;
         }
 
-        let symlink = combine_paths!(&virtual_parent, Path::new(fname));
+        let symlink = combine_paths!(&virtual_parent, fname);
 
-	let mut unique_hash = self.hash;
+        let mut unique_hash = self.hash;
 
-	for (i, byte) in self.path.as_os_str().as_encoded_bytes().iter().enumerate() {
-	    unique_hash[i % 32] ^= byte;
-	}
-	
+        for (i, byte) in self.path.as_os_str().as_encoded_bytes().iter().enumerate() {
+            unique_hash[i % 32] ^= byte;
+        }
+
         let hash_s = hex::encode(unique_hash);
-        let virtual_file = combine_paths!(&virtual_parent, Path::new(&hash_s));
+        let virtual_file = combine_paths!(&virtual_parent, &hash_s);
 
         File::create(symlink)?.write_all(hash_s.as_bytes())?;
 
@@ -138,7 +138,7 @@ impl<'a> Object<'a> {
 }
 
 fn get_virtual_parent(wd: &Path, path: &Path) -> PathBuf {
-    let index = combine_paths!(wd, Path::new(DCG_DIR), Path::new(INDEX_DIR));
+    let index = combine_paths!(wd, DCG_DIR, INDEX_DIR);
 
     let parent = path.parent().map(Path::to_path_buf).unwrap_or_default();
 

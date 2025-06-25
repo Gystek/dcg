@@ -63,7 +63,7 @@ pub(crate) fn add(paths: &[String], _cfg: &Config, lvl: NotificationLevel) -> Re
 
             if p.is_dir() {
                 debug!(lvl, "recursively adding directory {:?}", &p);
-                visit_dirs(&p, &|x| add_file(&ignored, x, &wd, dd, lvl))?;
+                visit_dirs(&p, &mut |x| add_file(&ignored, x, &wd, dd, lvl))?;
             } else {
                 add_file(&ignored, &p, &wd, dd, lvl)?;
             }

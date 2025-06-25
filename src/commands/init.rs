@@ -7,7 +7,11 @@ use std::{
 
 use anyhow::Result;
 
-use crate::{combine_paths, debug, info, vcs::config::Config, NotificationLevel};
+use crate::{
+    combine_paths, debug, info,
+    vcs::{config::Config, DCG_DIR},
+    NotificationLevel,
+};
 
 const REPO_DIRECTORIES: [&str; 7] = [
     "index/",
@@ -33,7 +37,7 @@ pub(crate) fn init(
         directory
             .as_ref()
             .map_or(env::current_dir()?, |x| Path::new(&x).to_path_buf()),
-        Path::new(".dcg")
+        DCG_DIR
     );
 
     let reinit = if !p_directory.exists() {
@@ -48,7 +52,7 @@ pub(crate) fn init(
     debug!(lvl, "creating .dcg directory in {:?}", &p_directory);
 
     for dir in REPO_DIRECTORIES {
-        let pd = combine_paths!(&p_directory, Path::new(dir));
+        let pd = combine_paths!(&p_directory, dir);
 
         debug!(lvl, "created directory {:?}", pd);
 

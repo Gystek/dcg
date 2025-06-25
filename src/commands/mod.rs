@@ -6,8 +6,9 @@ use clap::Subcommand;
 pub(crate) mod add;
 pub(crate) mod init;
 pub(crate) mod rm;
+pub(crate) mod status;
 
-pub(crate) fn visit_dirs(dir: &Path, cb: &dyn Fn(&Path) -> Result<()>) -> Result<()> {
+pub(crate) fn visit_dirs<F: FnMut(&Path) -> Result<()>>(dir: &Path, cb: &mut F) -> Result<()> {
     if dir.is_dir() {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
@@ -50,4 +51,6 @@ pub(crate) enum Commands {
         /// multiple files.  folders are removed recursively.
         paths: Vec<String>,
     },
+    /// display the status of each file in the index
+    Status,
 }

@@ -3,7 +3,10 @@ use glob::glob;
 use std::{env, fs, path::Path};
 
 use crate::{
-    commands::visit_dirs, debug, vcs::{config::Config, find_repo, index::Object}, warning, NotificationLevel
+    commands::visit_dirs,
+    debug,
+    vcs::{config::Config, find_repo, index::Object},
+    warning, NotificationLevel,
 };
 
 fn rm_file(path: &Path, _wd: &Path, dd: &Path, lvl: NotificationLevel) -> Result<()> {
@@ -24,7 +27,7 @@ pub(crate) fn rm(paths: &[String], _cfg: &Config, lvl: NotificationLevel) -> Res
 
             if p.is_dir() {
                 debug!(lvl, "recursively adding directory {:?}", &p);
-                visit_dirs(&p, &|x| rm_file(x, &wd, dd, lvl))?;
+                visit_dirs(&p, &mut |x| rm_file(x, &wd, dd, lvl))?;
             } else {
                 rm_file(&p, &wd, dd, lvl)?;
             }

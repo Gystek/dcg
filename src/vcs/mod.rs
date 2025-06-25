@@ -31,7 +31,7 @@ macro_rules! combine_paths {
 
 /// Find a dcg repository in the file hierarchy
 pub(crate) fn find_repo(start: &Path) -> Result<&Path> {
-    if start.join(Path::new(".dcg")).exists() {
+    if start.join(Path::new(DCG_DIR)).exists() {
         Ok(start)
     } else {
         match start.parent() {
