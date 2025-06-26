@@ -15,6 +15,7 @@ use crate::{
     commands::visit_dirs,
     debug,
     vcs::{
+        commit::{Change, ChangeContent},
         config::Config,
         diffs::{deserialise_everything, do_diff, get_diff_type, DiffType},
         find_repo, DCG_DIR, INDEX_DIR, LAST_DIR,
@@ -22,62 +23,23 @@ use crate::{
     NotificationLevel,
 };
 
-fn diff_file(
-    state: LinguistState,
-    f: &Path,
-    wd: &Path,
-    dd: &Path,
-    lvl: NotificationLevel,
-) -> Result<()> {
+fn diff_file(state: LinguistState, f: &Path, dd: &Path) -> Result<()> {
     // basically what `compute_status` does but for only one file
-    let last = combine_paths!(dd, DCG_DIR, LAST_DIR);
-    let index = combine_paths!(dd, DCG_DIR, INDEX_DIR);
+    let ch = Change::from(state, f, dd)?;
 
-    let laf = last.join(f).into_boxed_path();
-    let inf = index.join(f).into_boxed_path();
+    if let Some(ch) = ch {
+        println!("{}:", ch.path.display());
 
-    let mut lb = Vec::new();
-
-    let lh: Option<[u8; 32]> = if laf.exists() {
-        let mut h = String::new();
-
-        File::open(&laf)?.read_to_string(&mut h)?;
-
-        let hp = laf.with_file_name(h.trim());
-        File::open(&hp)?.read_to_end(&mut lb)?;
-
-        Some(hex::decode(&h)?.try_into().unwrap())
-    } else {
-        None
-    };
-
-    let ih: Option<[u8; 32]> = if inf.exists() {
-        let mut h = String::new();
-
-        File::open(&inf)?.read_to_string(&mut h)?;
-        Some(hex::decode(&h)?.try_into().unwrap())
-    } else {
-        None
-    };
-
-    if lh != ih {
-        print!("{}:", f.display());
-        match (lh, ih) {
-            (None, _) => println!(" file was created"),
-            (_, None) => println!(" file was deleted"),
-            (Some(lh), Some(ih)) => {
-                let dt = get_diff_type(state, &laf, &inf)?;
-
-                let lhf = laf.with_file_name(hex::encode(lh));
-                let ihf = inf.with_file_name(hex::encode(ih));
-
-                let d = do_diff(dt, &lhf, &ihf, true)?;
+        match ch.content {
+            ChangeContent::Addition => println!(" file was created"),
+            ChangeContent::Deletion => println!(" file was deleted"),
+            ChangeContent::Modification(dt, d) => {
                 let mut writer = Vec::new();
 
                 let text = if !matches!(dt, DiffType::FromBinary(_) | DiffType::Binary) {
                     let mut decoder = GzDecoder::new(writer);
 
-                    decoder.write_all(&lb)?;
+                    decoder.write_all(&ch.left)?;
                     writer = decoder.finish()?;
 
                     str::from_utf8(&writer)?
@@ -130,9 +92,9 @@ pub(crate) fn diff(
 
             if p.is_dir() {
                 debug!(lvl, "recursively removing directory {:?}", &p);
-                visit_dirs(&p, &mut |x| diff_file(state, x, &wd, dd, lvl))?;
+                visit_dirs(&p, &mut |x| diff_file(state, x, dd))?;
             } else {
-                diff_file(state, &p, &wd, dd, lvl)?;
+                diff_file(state, &p, dd)?;
             }
         }
     }

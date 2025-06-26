@@ -4,6 +4,7 @@ use std::{error::Error, fmt::Formatter, path::Path};
 use anyhow::Result;
 use const_format::concatcp;
 
+pub(crate) mod commit;
 pub(crate) mod config;
 pub(crate) mod diffs;
 pub(crate) mod index;
