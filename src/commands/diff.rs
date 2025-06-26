@@ -16,7 +16,7 @@ use crate::{
     debug,
     vcs::{
         config::Config,
-        diffs::{do_diff, get_diff_type, DiffType},
+        diffs::{deserialise_everything, do_diff, get_diff_type, DiffType},
         find_repo, DCG_DIR, INDEX_DIR, LAST_DIR,
     },
     NotificationLevel,
@@ -72,6 +72,18 @@ fn diff_file(
                 let ihf = inf.with_file_name(hex::encode(ih));
 
                 let d = do_diff(dt, &lhf, &ihf, true)?;
+                let mut writer = Vec::new();
+
+                let text = if !matches!(dt, DiffType::FromBinary(_) | DiffType::Binary) {
+                    let mut decoder = GzDecoder::new(writer);
+
+                    decoder.write_all(&lb)?;
+                    writer = decoder.finish()?;
+
+                    str::from_utf8(&writer)?
+                } else {
+                    ""
+                };
 
                 match dt {
                     DiffType::FromBinary(_) => {
@@ -79,20 +91,18 @@ fn diff_file(
                     }
                     DiffType::Binary => println!(" file is binary"),
                     DiffType::Linear(_, _) => {
-                        let mut writer = Vec::new();
-                        let mut decoder = GzDecoder::new(writer);
-
-                        decoder.write_all(&lb)?;
-                        writer = decoder.finish()?;
-
-                        let mut ll = str::from_utf8(&writer)?.lines().collect::<Vec<&str>>();
-
+                        let mut ll = text.lines().collect::<Vec<&str>>();
                         ll.push("");
 
                         println!();
                         linear::pretty_print(&ll, &linear::deserialise(&d));
                     }
-                    DiffType::Tree(_) => {}
+                    DiffType::Tree(_) => {
+                        let d = deserialise_everything(&d, text)?;
+
+                        println!();
+                        println!("{:?}", d);
+                    }
                 }
             }
         }
@@ -104,7 +114,7 @@ fn diff_file(
 pub(crate) fn diff(
     files: &[String],
     state: LinguistState,
-    cfg: &Config,
+    _cfg: &Config,
     lvl: NotificationLevel,
 ) -> Result<()> {
     let wd = env::current_dir().map(fs::canonicalize)??.into_boxed_path();

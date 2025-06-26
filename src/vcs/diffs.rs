@@ -7,12 +7,13 @@ use std::{
 
 use crate::backend::{
     bcst::{diff_wrapper, BCSTree},
-    diff::ered,
+    diff::{ered, Diff},
     languages::Languages,
-    linear::{self},
+    linear,
     linguist::{get_ts_language, guess_language, LinguistState},
     rcst::RCSTree,
-    serde::{serialise, Ranges, TextRanges},
+    serde::{deserialise, serialise, Ranges, TextRanges},
+    ADDR_BYTES,
 };
 
 use anyhow::Result;
@@ -42,6 +43,103 @@ pub(crate) fn get_diff_type<P: AsRef<Path>>(
         (x, y) if x == y && x != Languages::PlainText => DiffType::Tree(lang1),
         _ => DiffType::Linear(lang1, lang2),
     })
+}
+
+fn read_usize(i: &mut usize, v: &[u8]) -> usize {
+    let x = usize::from_le_bytes(v[*i..*i + ADDR_BYTES].try_into().unwrap());
+    *i += ADDR_BYTES;
+
+    x
+}
+
+/// Deserialise the diff from its serialised form alone.
+pub(crate) fn deserialise_everything<'a>(v: &'a [u8], left: &'a str) -> Result<Diff<'a>> {
+    let mut i = 0;
+    let rl = read_usize(&mut i, v);
+
+    let mut vr = vec![((0, 0)..(0, 0), 0..0); rl];
+
+    for _ in 0..rl {
+        let r1s0 = read_usize(&mut i, v);
+        let r1s1 = read_usize(&mut i, v);
+        let r1e0 = read_usize(&mut i, v);
+        let r1e1 = read_usize(&mut i, v);
+
+        let r2s = read_usize(&mut i, v);
+        let r2e = read_usize(&mut i, v);
+
+        let x = read_usize(&mut i, v);
+
+        vr[x] = ((r1s0, r1s1)..(r1e0, r1e1), r2s..r2e);
+    }
+
+    let trl = read_usize(&mut i, v);
+    let mut vtr = vec![((0, 0)..(0, 0), 0..0, ""); trl];
+
+    for _ in 0..trl {
+        let r1s0 = read_usize(&mut i, v);
+        let r1s1 = read_usize(&mut i, v);
+        let r1e0 = read_usize(&mut i, v);
+        let r1e1 = read_usize(&mut i, v);
+
+        let r2s = read_usize(&mut i, v);
+        let r2e = read_usize(&mut i, v);
+
+        let sl = read_usize(&mut i, v);
+        let s = str::from_utf8(&v[i..i + sl])?;
+        i += sl;
+
+        let x = read_usize(&mut i, v);
+
+        vtr[x] = ((r1s0, r1s1)..(r1e0, r1e1), r2s..r2e, s);
+    }
+
+    Ok(deserialise(&v[i..], left, &vr, &vtr).0)
+}
+
+/// Serialise the diff along with the ranges.  All numbers are
+/// written in little endian.  Strings are not null terminated,
+/// as their length is stored.
+pub(crate) fn serialise_everything(d: Rc<Diff>) -> Vec<u8> {
+    let mut ranges = Ranges::new();
+    let mut tranges = TextRanges::new();
+
+    let ds = serialise(d, &mut ranges, &mut tranges);
+
+    let mut ser = Vec::new();
+
+    ser.extend(ranges.len().to_le_bytes());
+    for ((range1, range2), idx) in ranges {
+        ser.extend(range1.start.0.to_le_bytes());
+        ser.extend(range1.start.1.to_le_bytes());
+        ser.extend(range1.end.0.to_le_bytes());
+        ser.extend(range1.end.1.to_le_bytes());
+
+        ser.extend(range2.start.to_le_bytes());
+        ser.extend(range2.end.to_le_bytes());
+
+        ser.extend(idx.to_le_bytes());
+    }
+
+    ser.extend(tranges.len().to_le_bytes());
+    for ((range1, range2, s), idx) in tranges {
+        ser.extend(range1.start.0.to_le_bytes());
+        ser.extend(range1.start.1.to_le_bytes());
+        ser.extend(range1.end.0.to_le_bytes());
+        ser.extend(range1.end.1.to_le_bytes());
+
+        ser.extend(range2.start.to_le_bytes());
+        ser.extend(range2.end.to_le_bytes());
+
+        ser.extend(s.len().to_le_bytes());
+        ser.extend(s.as_bytes());
+
+        ser.extend(idx.to_le_bytes());
+    }
+
+    ser.extend(ds);
+
+    ser
 }
 
 fn do_diff_linear(mut s1: String, mut s2: String) -> Result<Vec<u8>> {
@@ -126,10 +224,7 @@ pub(crate) fn do_diff<P: AsRef<Path>>(
 
                 let diff = ered(diff_wrapper((Rc::new(b1), bn1), (Rc::new(b2), bn2)));
 
-                let mut ranges = Ranges::new();
-                let mut tranges = TextRanges::new();
-
-                Ok(serialise(diff, &mut ranges, &mut tranges))
+                Ok(serialise_everything(diff))
             } else {
                 do_diff_linear(s1, s2)
             }
