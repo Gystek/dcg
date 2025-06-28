@@ -38,7 +38,10 @@ pub(crate) struct Change {
 }
 
 impl Change {
-    pub(crate) fn from(state: LinguistState, f: &Path, dd: &Path) -> Result<Option<Self>> {
+    pub(crate) fn from<P: AsRef<Path>>(state: LinguistState, f: P, dd: P) -> Result<Option<Self>> {
+        let f = f.as_ref();
+        let dd = dd.as_ref();
+
         // basically what `compute_status` does but for only one file
         let last = combine_paths!(dd, DCG_DIR, LAST_DIR);
         let index = combine_paths!(dd, DCG_DIR, INDEX_DIR);
@@ -131,6 +134,14 @@ pub(crate) struct CommitObject {
 }
 
 impl CommitObject {
+    pub(crate) fn new(author: User, message: String, changes: Vec<Change>) -> Self {
+        Self {
+            author,
+            message,
+            changes,
+        }
+    }
+
     fn hash(&self) -> Result<[u8; 32]> {
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
 
@@ -147,7 +158,7 @@ impl CommitObject {
         }
     }
 
-    pub(crate) fn write(&self, state: LinguistState) -> Result<()> {
+    pub(crate) fn write(&self, state: LinguistState) -> Result<[u8; 32]> {
         let wd = env::current_dir().map(fs::canonicalize)??.into_boxed_path();
         let dd = find_repo(&wd)?;
 
@@ -159,6 +170,13 @@ impl CommitObject {
 
         let mp = combine_paths!(&cf, "message");
         File::create(&mp)?.write_all(self.message.as_bytes())?;
+
+        /* should have been previously checked */
+        let name = self.author.name.as_ref().unwrap();
+        let email = self.author.email.as_ref().unwrap();
+
+        let ap = combine_paths!(&cf, "author");
+        File::create(&ap)?.write_all(format!("{} <{}>", name, email).as_bytes())?;
 
         let branch = get_branch(dd)?;
         let parent = fetch_head(dd, &branch)?;
@@ -185,20 +203,21 @@ impl CommitObject {
         }
 
         /* update branch head */
-        File::create(combine_paths!(&dd, BRANCHES_DIR, branch))?
+        File::create(combine_paths!(&dd, DCG_DIR, BRANCHES_DIR, branch))?
             .write_all(hex::encode(h).as_bytes())?;
 
         let idp = combine_paths!(dd, DCG_DIR, INDEX_DIR);
         let ltp = combine_paths!(dd, DCG_DIR, LAST_DIR);
 
         /* move index to last */
+        remove_dir_all(&ltp)?;
         copy_dir_all(&idp, ltp)?;
 
         /* free index */
         remove_dir_all(&idp)?;
         create_dir_all(idp)?;
 
-        Ok(())
+        Ok(h)
     }
 }
 
@@ -248,6 +267,7 @@ fn make_base_file<P: AsRef<Path>>(
 ) -> Result<()> {
     let virtual_parent = combine_paths!(
         dd,
+        DCG_DIR,
         BASE_DIR,
         p.as_ref()
             .parent()
@@ -282,7 +302,7 @@ fn make_base_file<P: AsRef<Path>>(
 
         File::create(virtual_file)?.write_all(contents)?;
     } else {
-        let full_path = combine_paths!(dd, INDEX_DIR, &p);
+        let full_path = combine_paths!(dd, DCG_DIR, INDEX_DIR, &p);
         make_blob(full_path, &hs, dd)?;
     }
 
@@ -290,7 +310,7 @@ fn make_base_file<P: AsRef<Path>>(
 }
 
 fn make_blob<P: AsRef<Path>>(from: P, hs: &str, dd: &Path) -> Result<PathBuf> {
-    let bf = combine_paths!(dd, BLOBS_DIR, hs);
+    let bf = combine_paths!(dd, DCG_DIR, BLOBS_DIR, hs);
 
     if !bf.exists() {
         copy(from, &bf)?;
@@ -300,7 +320,7 @@ fn make_blob<P: AsRef<Path>>(from: P, hs: &str, dd: &Path) -> Result<PathBuf> {
 }
 
 fn make_blob_from_bytes(bytes: &[u8], hs: &str, dd: &Path) -> Result<PathBuf> {
-    let bf = combine_paths!(dd, BLOBS_DIR, hs);
+    let bf = combine_paths!(dd, DCG_DIR, BLOBS_DIR, hs);
 
     if !bf.exists() {
         File::create(&bf)?.write_all(bytes)?;
@@ -313,11 +333,11 @@ fn hash_to_commit_path(h: [u8; 32]) -> String {
     let ph = h[0];
     let sh = &h[1..];
 
-    format!("{:x}/{}/", ph, hex::encode(sh))
+    format!("{:02x}/{}/", ph, hex::encode(sh))
 }
 
-fn get_branch<P: AsRef<Path>>(dd: P) -> Result<String> {
-    let refs = combine_paths!(dd.as_ref(), REFS_DIR);
+pub(crate) fn get_branch<P: AsRef<Path>>(dd: P) -> Result<String> {
+    let refs = combine_paths!(dd.as_ref(), DCG_DIR, REFS_DIR);
 
     let mut branch = String::new();
 
@@ -327,12 +347,18 @@ fn get_branch<P: AsRef<Path>>(dd: P) -> Result<String> {
 }
 
 fn fetch_head<P: AsRef<Path>>(dd: P, branch: &str) -> Result<Option<[u8; 32]>> {
-    let branches = combine_paths!(dd.as_ref(), BRANCHES_DIR);
+    let branches = combine_paths!(dd.as_ref(), DCG_DIR, BRANCHES_DIR);
     let mut ch = String::new();
 
     File::open(combine_paths!(&branches, branch.trim()))?.read_to_string(&mut ch)?;
 
-    Ok(hex::decode(ch.trim()).map(|x| x.try_into().unwrap()).ok())
+    let ch = ch.trim();
+
+    if ch.is_empty() {
+        Ok(None)
+    } else {
+        Ok(hex::decode(ch).map(|x| x.try_into().unwrap()).ok())
+    }
 }
 
 fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {

@@ -174,10 +174,7 @@ impl fmt::Display for ObjStatus {
 }
 
 fn archive_one(p: &Path, pref: &Path, m: &mut BTreeMap<PathBuf, [u8; 32]>) -> Result<()> {
-    let fname = p.file_name().and_then(OsStr::to_str).unwrap_or("");
-
-    /* file name is not a hash */
-    if hex::decode(fname).is_err() {
+    if index_true_file(p) {
         let mut h = String::new();
 
         File::open(p)?.read_to_string(&mut h)?;
@@ -187,6 +184,28 @@ fn archive_one(p: &Path, pref: &Path, m: &mut BTreeMap<PathBuf, [u8; 32]>) -> Re
     }
 
     Ok(())
+}
+
+fn index_true_file(p: &Path) -> bool {
+    let fname = p.file_name().and_then(OsStr::to_str).unwrap_or("");
+
+    /* file name is not a hash */
+    hex::decode(fname).is_err()
+}
+
+pub(crate) fn get_indexed_files<P: AsRef<Path>>(dd: P) -> Result<Vec<PathBuf>> {
+    let dd = dd.as_ref();
+    let idx = combine_paths!(dd, DCG_DIR, INDEX_DIR);
+    let mut paths = Vec::new();
+
+    visit_dirs(&idx, &mut |p| {
+        if index_true_file(p) {
+            paths.push(p.strip_prefix(&idx)?.to_path_buf());
+        }
+        Ok(())
+    })?;
+
+    Ok(paths)
 }
 
 pub(crate) fn compute_status() -> Result<Vec<(PathBuf, ObjStatus)>> {

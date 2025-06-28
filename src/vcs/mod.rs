@@ -48,6 +48,9 @@ pub(crate) fn find_repo(start: &Path) -> Result<&Path> {
 pub(crate) enum DcgError {
     NoRepository,
     NoAuthor,
+    NoEditor,
+    FailedToWriteMessage,
+    NoChanges,
 }
 
 impl fmt::Display for DcgError {
@@ -55,6 +58,9 @@ impl fmt::Display for DcgError {
         match self {
             Self::NoRepository => write!(f, "no dcg repository found in the file hierarchy"),
             Self::NoAuthor => write!(f, "no author for commits in configuration"),
+            Self::NoEditor => write!(f, "no commit message and no edit command defined"),
+            Self::FailedToWriteMessage => write!(f, "failed to write commit message"),
+            Self::NoChanges => write!(f, "no changes to commit. add changes to the index first"),
         }
     }
 }

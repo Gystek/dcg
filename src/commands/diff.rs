@@ -27,7 +27,7 @@ fn diff_file(state: LinguistState, f: &Path, dd: &Path) -> Result<()> {
     let ch = Change::from(state, f, dd)?;
 
     if let Some(ch) = ch {
-        println!("{}:", ch.path.display());
+        print!("{}:", ch.path.display());
 
         match ch.content {
             ChangeContent::Addition(_) => println!(" file was created"),

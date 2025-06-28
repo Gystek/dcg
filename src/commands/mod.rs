@@ -4,6 +4,7 @@ use anyhow::Result;
 use clap::Subcommand;
 
 pub(crate) mod add;
+pub(crate) mod commit;
 pub(crate) mod diff;
 pub(crate) mod init;
 pub(crate) mod rm;
@@ -60,5 +61,10 @@ pub(crate) enum Commands {
         /// the files to diff.  if empty, diff all files.  folders
         /// are diff-ed recursively.
         files: Vec<String>,
+    },
+    /// commit the changes contained in the index to the revision tree.
+    Commit {
+        /// the message to associate with the commit.
+        message: Option<String>,
     },
 }

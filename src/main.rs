@@ -135,6 +135,7 @@ fn try_main() -> Result<()> {
         Commands::Rm { paths } => commands::rm::rm(paths, &cfg, lvl),
         Commands::Status => commands::status::status(lvl),
         Commands::Diff { files } => commands::diff::diff(files, state, &cfg, lvl),
+        Commands::Commit { message } => commands::commit::commit(message, state, &cfg, lvl),
     }
 }
 

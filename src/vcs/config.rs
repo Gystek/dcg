@@ -12,6 +12,7 @@ use std::{
 pub(crate) struct Config {
     pub(crate) user: Option<User>,
     pub(crate) init: Option<Init>,
+    pub(crate) commit: Option<Commit>,
 }
 
 #[derive(Deserialize, Merge, Clone, Debug, Default)]
@@ -23,6 +24,13 @@ pub(crate) struct User {
 #[derive(Deserialize, Merge, Clone, Debug)]
 pub(crate) struct Init {
     pub(crate) default_branch: Option<String>,
+}
+
+#[derive(Deserialize, Merge, Clone, Debug)]
+pub(crate) struct Commit {
+    /// the command to start the editor for commit messages.
+    /// the filename is given as second argument
+    pub(crate) editor: Option<String>,
 }
 
 impl Default for Init {
