@@ -6,7 +6,7 @@ use crate::{
     commands::visit_dirs,
     debug,
     vcs::{config::Config, find_repo, index::Object},
-    warning, NotificationLevel,
+    NotificationLevel,
 };
 
 fn rm_file(path: &Path, _wd: &Path, dd: &Path, lvl: NotificationLevel) -> Result<()> {

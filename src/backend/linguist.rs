@@ -1,7 +1,7 @@
 use content_inspector::ContentType;
 use glob::Pattern;
 
-use crate::backend::languages::{self, Languages};
+use crate::backend::languages::Languages;
 use std::{
     collections::BTreeMap,
     ffi::OsStr,
@@ -191,7 +191,7 @@ fn guess_heuristics(
     Ok(None)
 }
 
-fn plain_or_binary(reader: BufReader<File>) -> io::Result<Languages> {
+pub(crate) fn plain_or_binary<R: Read>(reader: R) -> io::Result<Languages> {
     let bytes = reader.bytes().collect::<io::Result<Vec<u8>>>()?;
 
     match content_inspector::inspect(&bytes) {

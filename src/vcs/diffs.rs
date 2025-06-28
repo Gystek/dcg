@@ -28,6 +28,42 @@ pub(crate) enum DiffType {
     FromBinary(Languages),
 }
 
+impl DiffType {
+    pub(crate) fn serialise(self) -> Vec<u8> {
+        match self {
+            Self::Binary => vec![0],
+            Self::FromBinary(l) => {
+                let mut v = vec![1];
+                v.push(l as u8);
+                v
+            }
+            Self::Tree(l) => {
+                let mut v = vec![2];
+                v.push(l as u8);
+                v
+            }
+            Self::Linear(l0, l1) => {
+                let mut v = vec![3];
+                v.push(l0 as u8);
+                v.push(l1 as u8);
+                v
+            }
+        }
+    }
+    pub(crate) fn deserialise(v: &[u8]) -> Self {
+        match v[0] {
+            0 => Self::Binary,
+            1 => Self::FromBinary(Languages::try_from(v[1]).unwrap()),
+            2 => Self::Tree(Languages::try_from(v[1]).unwrap()),
+            3 => Self::Linear(
+                Languages::try_from(v[1]).unwrap(),
+                Languages::try_from(v[2]).unwrap(),
+            ),
+            _ => unreachable!(),
+        }
+    }
+}
+
 pub(crate) fn get_diff_type<P: AsRef<Path>>(
     linguist: LinguistState,
     file1: P,

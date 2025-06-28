@@ -13,6 +13,7 @@ flate2 = { version = "1.1.2", features = ["zlib-rs"], default-features = false }
 glob = "0.3.2"
 hex = "0.4.3"
 imara-diff = "0.2.0"
+num_enum = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.9"
 toml = "0.8"

@@ -1,11 +1,10 @@
 use anyhow::Result;
-use clap::builder::OsStr;
 use config_derive::Merge;
 use serde::Deserialize;
 use std::{
-    env::{self, VarError},
+    env::{self},
     fs::File,
-    io::{self, Read},
+    io::Read,
     path::Path,
 };
 

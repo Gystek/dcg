@@ -47,12 +47,14 @@ pub(crate) fn find_repo(start: &Path) -> Result<&Path> {
 #[derive(Debug, Clone)]
 pub(crate) enum DcgError {
     NoRepository,
+    NoAuthor,
 }
 
 impl fmt::Display for DcgError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Self::NoRepository => write!(f, "no dcg repository found in the file hierarchy"),
+            Self::NoAuthor => write!(f, "no author for commits in configuration"),
         }
     }
 }

@@ -1,7 +1,7 @@
 use std::{
     env,
-    fs::{self, File},
-    io::{Read, Write},
+    fs::{self},
+    io::Write,
     path::Path,
 };
 
@@ -11,14 +11,13 @@ use glob::glob;
 
 use crate::{
     backend::{linear, linguist::LinguistState},
-    combine_paths,
     commands::visit_dirs,
     debug,
     vcs::{
         commit::{Change, ChangeContent},
         config::Config,
-        diffs::{deserialise_everything, do_diff, get_diff_type, DiffType},
-        find_repo, DCG_DIR, INDEX_DIR, LAST_DIR,
+        diffs::{deserialise_everything, DiffType},
+        find_repo,
     },
     NotificationLevel,
 };
@@ -31,15 +30,15 @@ fn diff_file(state: LinguistState, f: &Path, dd: &Path) -> Result<()> {
         println!("{}:", ch.path.display());
 
         match ch.content {
-            ChangeContent::Addition => println!(" file was created"),
+            ChangeContent::Addition(_) => println!(" file was created"),
             ChangeContent::Deletion => println!(" file was deleted"),
-            ChangeContent::Modification(dt, d) => {
+            ChangeContent::Modification(dt, _, d) => {
                 let mut writer = Vec::new();
 
                 let text = if !matches!(dt, DiffType::FromBinary(_) | DiffType::Binary) {
                     let mut decoder = GzDecoder::new(writer);
 
-                    decoder.write_all(&ch.left)?;
+                    decoder.write_all(&ch.file)?;
                     writer = decoder.finish()?;
 
                     str::from_utf8(&writer)?

@@ -10,8 +10,8 @@ use anyhow::Result;
 use crate::{
     combine_paths, debug, info,
     vcs::{
-        config::Config, BASE_DIR, BLOBS_DIR, BRANCHES_DIR, DCG_DIR, INDEX_DIR, LAST_DIR, REFS_DIR,
-        TAGS_DIR, TREE_DIR,
+        config::Config, BASE_DIR, BLOBS_DIR, BRANCHES_DIR, DCG_DIR, INDEX_DIR,
+        LAST_DIR, REFS_DIR, TAGS_DIR, TREE_DIR,
     },
     NotificationLevel,
 };

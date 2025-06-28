@@ -1,5 +1,3 @@
-use std::{cmp::Ordering, rc::Rc};
-
 use imara_diff::{Algorithm, Diff, InternedInput};
 
 use crate::backend::ADDR_BYTES;

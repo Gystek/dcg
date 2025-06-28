@@ -17,10 +17,10 @@ Milestone 2 - (scarce) equivalent to Git
   - [x] `status`
   - [x] `diff`
 - [ ] Revision and branching operations
-  - [ ] Diff storage
-	- [ ] Code files
-	- [ ] Plain text/unidentified files
-	- [ ] Binary files
+  - [x] Diff storage
+	- [x] Code files
+	- [x] Plain text/unidentified files
+	- [x] Binary files
   - [ ] `commit`
   - [ ] `tag`
   - [ ] `log`

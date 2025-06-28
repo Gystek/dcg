@@ -4,7 +4,7 @@ use std::{
     ffi::OsStr,
     fmt::{self, Formatter},
     fs::{self, File},
-    io::{self, prelude::*, Read, Write},
+    io::{self, Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -150,7 +150,7 @@ fn get_virtual_parent(wd: &Path, path: &Path) -> PathBuf {
     combine_paths!(index, parent)
 }
 
-fn get_fname(path: &Path) -> &str {
+pub(crate) fn get_fname(path: &Path) -> &str {
     path.file_name().and_then(|x| x.to_str()).unwrap_or("")
 }
 
