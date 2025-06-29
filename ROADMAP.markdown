@@ -34,7 +34,7 @@ Milestone 2 - (scarce) equivalent to Git
   - [ ] general remote management
   - [ ] `push`
   - [ ] `pull`
-- [ ] User manual
+- [x] User manual
 
 Milestone 1 - (slow) equivalent to [difft](https://github.com/Wilfred/difftastic) and [mergiraf](https://mergiraf.org/)
 -----------------------------------------------------------------------------------------------------------------------

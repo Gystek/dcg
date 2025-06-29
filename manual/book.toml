@@ -1,0 +1,5 @@
+[book]
+authors = ["Gustek"]
+language = "en"
+src = "src"
+title = "Dcg Manual"

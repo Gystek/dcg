@@ -35,7 +35,7 @@ pub(crate) enum Commands {
         /// instead of 'master' (by default) or the
         /// branch name as defined in the user
         /// configuration.
-        #[arg(short = 'b', long)]
+        #[arg(short = 'b', long = "initial-branch")]
         initial_branch: Option<String>,
 
         directory: Option<String>,
