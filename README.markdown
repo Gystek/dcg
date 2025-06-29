@@ -38,8 +38,8 @@ Meaning of "dcg"
 ----------------
 
 Dcg can mean many things depending on how well it performs:
-- "dendrochronologit"xs: from ["dendrochronology"](https://en.wikipedia.org/wiki/Dendrochronology) and "Git"
-- "diffing code like Git": because that's what it does most of the time
+- "dendrochronologit": from ["dendrochronology"](https://en.wikipedia.org/wiki/Dendrochronology) and "Git"
+- "diffing code like Git": because that's what it does (poorly)
 - "*diffeur à chier de Gustek*": most of the time (I'll leave it up to the user whether or not to translate this)
 
 Licence
