@@ -95,9 +95,9 @@ pub(crate) fn commit(
         return Ok(());
     }
 
-    let commit = CommitObject::new(cfg.user.clone().unwrap(), message.clone(), changes);
+    let commit = CommitObject::new(cfg.user.clone().unwrap(), message.clone(), changes)?;
 
-    let h = commit.write(state)?;
+    let h = commit.write(&dd)?;
 
     info!(
         lvl,

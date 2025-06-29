@@ -7,6 +7,7 @@ pub(crate) mod add;
 pub(crate) mod commit;
 pub(crate) mod diff;
 pub(crate) mod init;
+pub(crate) mod log;
 pub(crate) mod rm;
 pub(crate) mod status;
 
@@ -66,5 +67,11 @@ pub(crate) enum Commands {
     Commit {
         /// the message to associate with the commit.
         message: Option<String>,
+    },
+    /// list commits for the current branch
+    Log {
+        /// display each commit on one line
+        #[arg(long = "oneline")]
+        one_line: bool,
     },
 }

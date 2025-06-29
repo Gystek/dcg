@@ -21,13 +21,15 @@ Milestone 2 - (scarce) equivalent to Git
 	- [x] Code files
 	- [x] Plain text/unidentified files
 	- [x] Binary files
-  - [ ] `commit`
+  - [x] `commit`
+  - [x] `log`
   - [ ] `tag`
-  - [ ] `log`
   - [ ] `reset`
-  - [ ] `branch`
   - [ ] `checkout`
-  - [ ] `merge`
+  - [ ] `branch`
+	- [ ] `create`/`delete`
+	- [ ] `swap`
+	- [ ] `merge`
 - [ ] Remotes
   - [ ] general remote management
   - [ ] `push`

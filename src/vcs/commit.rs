@@ -1,7 +1,8 @@
 use std::{
     env,
+    ffi::OsStr,
     fs::{self, copy, create_dir_all, remove_dir_all, File},
-    io::{self, BufWriter, Read, Write},
+    io::{self, BufReader, BufWriter, Read, Write},
     os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
@@ -13,7 +14,7 @@ use flate2::write::GzDecoder;
 use sha2::{Digest, Sha256};
 
 use crate::{
-    backend::linguist::LinguistState,
+    backend::{linguist::LinguistState, ADDR_BYTES},
     combine_paths,
     vcs::diffs::{do_diff, get_diff_type},
 };
@@ -120,37 +121,78 @@ impl Change {
             }
         }
 
+        let sb = self.path.as_os_str().as_bytes();
+
+        base.extend(sb.len().to_le_bytes());
         base.extend(self.path.as_os_str().as_bytes());
 
         base
+    }
+
+    fn deserialise_entry(v: &[u8]) -> Result<(Self, usize)> {
+        let t = v[0];
+        let mut off = 1;
+
+        let t = match t {
+            b'd' => ChangeContent::Deletion,
+            b'a' => {
+                let h = v[1..33].try_into().unwrap();
+                off = 33;
+
+                ChangeContent::Addition(h)
+            }
+            b'm' => {
+                let (dt, to) = DiffType::deserialise(&v[1..]);
+                let h = v[1 + to..33 + to].try_into().unwrap();
+
+                off = 33 + to;
+
+                ChangeContent::Modification(dt, h, vec![])
+            }
+            _ => unreachable!("invalid change type: {}", t),
+        };
+
+        let path_l = usize::from_le_bytes(v[off..off + ADDR_BYTES].try_into().unwrap());
+        off += ADDR_BYTES;
+
+        let path = PathBuf::from(OsStr::from_bytes(&v[off..off + path_l]));
+
+        Ok((
+            Self {
+                content: t,
+                path,
+                file: vec![],
+            },
+            off + path_l,
+        ))
     }
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct CommitObject {
-    author: User,
-    message: String,
-    changes: Vec<Change>,
+    pub(crate) author: User,
+    pub(crate) message: String,
+    pub(crate) changes: Vec<Change>,
+    pub(crate) date: u64,
 }
 
 impl CommitObject {
-    pub(crate) fn new(author: User, message: String, changes: Vec<Change>) -> Self {
-        Self {
+    pub(crate) fn new(author: User, message: String, changes: Vec<Change>) -> Result<Self> {
+        Ok(Self {
             author,
             message,
             changes,
-        }
+            date: SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs(),
+        })
     }
 
     fn hash(&self) -> Result<[u8; 32]> {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-
         if let User {
             name: Some(name),
             email: Some(email),
         } = &self.author
         {
-            let k = format!("{}{}{}", now, name, email);
+            let k = format!("{}{}{}", self.date, name, email);
 
             Ok(Sha256::digest(k.as_bytes()).into())
         } else {
@@ -158,9 +200,49 @@ impl CommitObject {
         }
     }
 
-    pub(crate) fn write(&self, state: LinguistState) -> Result<[u8; 32]> {
-        let wd = env::current_dir().map(fs::canonicalize)??.into_boxed_path();
-        let dd = find_repo(&wd)?;
+    pub(crate) fn read<P: AsRef<Path>>(dd: P, h: [u8; 32]) -> Result<Self> {
+        let cf = combine_paths!(dd.as_ref(), DCG_DIR, TREE_DIR, hash_to_commit_path(h));
+
+        let mp = combine_paths!(&cf, "message");
+        let mut message = String::new();
+        File::open(&mp)?.read_to_string(&mut message)?;
+
+        let dp = combine_paths!(&cf, "date");
+        let mut date_bytes = [0; 8];
+        File::open(&dp)?.read(&mut date_bytes)?;
+
+        let ap = combine_paths!(&cf, "author");
+        let mut author = String::new();
+        File::open(&ap)?.read_to_string(&mut author)?;
+
+        let mut al = author.lines();
+        let name = al.next().map(str::to_string);
+        let email = al.next().map(str::to_string);
+
+        let mut dir = Vec::new();
+        File::open(combine_paths!(&cf, "directory"))?.read_to_end(&mut dir)?;
+        let mut i = ADDR_BYTES;
+        let changes_l = usize::from_le_bytes(dir[0..ADDR_BYTES].try_into().unwrap());
+
+        let mut changes = Vec::with_capacity(changes_l);
+        while i < dir.len() {
+            let (entry, off) = Change::deserialise_entry(&dir[i..])?;
+            i += off;
+
+            /* TODO: get file content and fetch diff */
+            changes.push(entry);
+        }
+
+        Ok(Self {
+            author: User { name, email },
+            message,
+            changes,
+            date: u64::from_le_bytes(date_bytes),
+        })
+    }
+
+    pub(crate) fn write<P: AsRef<Path>>(&self, dd: P) -> Result<[u8; 32]> {
+        let dd = dd.as_ref();
 
         let h = self.hash()?;
 
@@ -171,17 +253,21 @@ impl CommitObject {
         let mp = combine_paths!(&cf, "message");
         File::create(&mp)?.write_all(self.message.as_bytes())?;
 
+        let dp = combine_paths!(&cf, "date");
+        File::create(&dp)?.write_all(&self.date.to_le_bytes())?;
+
         /* should have been previously checked */
         let name = self.author.name.as_ref().unwrap();
         let email = self.author.email.as_ref().unwrap();
 
         let ap = combine_paths!(&cf, "author");
-        File::create(&ap)?.write_all(format!("{} <{}>", name, email).as_bytes())?;
+        File::create(&ap)?.write_all(format!("{}\n{}", name, email).as_bytes())?;
 
         let branch = get_branch(dd)?;
         let parent = fetch_head(dd, &branch)?;
 
         let mut dir = BufWriter::new(File::create(combine_paths!(&cf, "directory"))?);
+        dir.write_all(&self.changes.len().to_le_bytes())?;
         for change in &self.changes {
             dir.write_all(&change.serialise_entry())?;
 
@@ -329,7 +415,7 @@ fn make_blob_from_bytes(bytes: &[u8], hs: &str, dd: &Path) -> Result<PathBuf> {
     Ok(bf)
 }
 
-fn hash_to_commit_path(h: [u8; 32]) -> String {
+pub(crate) fn hash_to_commit_path(h: [u8; 32]) -> String {
     let ph = h[0];
     let sh = &h[1..];
 
@@ -346,7 +432,24 @@ pub(crate) fn get_branch<P: AsRef<Path>>(dd: P) -> Result<String> {
     Ok(branch)
 }
 
-fn fetch_head<P: AsRef<Path>>(dd: P, branch: &str) -> Result<Option<[u8; 32]>> {
+pub(crate) fn get_parent<P: AsRef<Path>>(dd: P, h: [u8; 32]) -> Result<Option<[u8; 32]>> {
+    let cp = hash_to_commit_path(h);
+    let parent_p = combine_paths!(dd.as_ref(), DCG_DIR, TREE_DIR, &cp, "parent");
+
+    if parent_p.exists() {
+        let mut s = String::new();
+
+        File::open(&parent_p)?.read_to_string(&mut s)?;
+
+        let h = hex::decode(s)?.try_into().unwrap();
+
+        Ok(Some(h))
+    } else {
+        Ok(None)
+    }
+}
+
+pub(crate) fn fetch_head<P: AsRef<Path>>(dd: P, branch: &str) -> Result<Option<[u8; 32]>> {
     let branches = combine_paths!(dd.as_ref(), DCG_DIR, BRANCHES_DIR);
     let mut ch = String::new();
 

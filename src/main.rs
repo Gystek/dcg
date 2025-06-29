@@ -136,6 +136,7 @@ fn try_main() -> Result<()> {
         Commands::Status => commands::status::status(lvl),
         Commands::Diff { files } => commands::diff::diff(files, state, &cfg, lvl),
         Commands::Commit { message } => commands::commit::commit(message, state, &cfg, lvl),
+        Commands::Log { one_line } => commands::log::log(state, &cfg, lvl, *one_line),
     }
 }
 

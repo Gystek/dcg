@@ -17,6 +17,7 @@ mktemp = "0.5.1"
 num_enum = "0.7"
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.9"
+time = { version = "0.3", features = ["formatting"] }
 toml = "0.8"
 tree-sitter = "0.24"
 tree-sitter-agda = "1.3"

@@ -50,14 +50,17 @@ impl DiffType {
             }
         }
     }
-    pub(crate) fn deserialise(v: &[u8]) -> Self {
+    pub(crate) fn deserialise(v: &[u8]) -> (Self, usize) {
         match v[0] {
-            0 => Self::Binary,
-            1 => Self::FromBinary(Languages::try_from(v[1]).unwrap()),
-            2 => Self::Tree(Languages::try_from(v[1]).unwrap()),
-            3 => Self::Linear(
-                Languages::try_from(v[1]).unwrap(),
-                Languages::try_from(v[2]).unwrap(),
+            0 => (Self::Binary, 1),
+            1 => (Self::FromBinary(Languages::try_from(v[1]).unwrap()), 2),
+            2 => (Self::Tree(Languages::try_from(v[1]).unwrap()), 2),
+            3 => (
+                Self::Linear(
+                    Languages::try_from(v[1]).unwrap(),
+                    Languages::try_from(v[2]).unwrap(),
+                ),
+                3,
             ),
             _ => unreachable!(),
         }
