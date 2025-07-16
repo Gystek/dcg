@@ -51,6 +51,8 @@ pub(crate) enum DcgError {
     NoEditor,
     FailedToWriteMessage,
     NoChanges,
+    EmptyTree,
+    InvalidCommit,
 }
 
 impl fmt::Display for DcgError {
@@ -61,6 +63,8 @@ impl fmt::Display for DcgError {
             Self::NoEditor => write!(f, "no commit message and no edit command defined"),
             Self::FailedToWriteMessage => write!(f, "failed to write commit message"),
             Self::NoChanges => write!(f, "no changes to commit. add changes to the index first"),
+            Self::EmptyTree => write!(f, "no last commit: commit tree is empty"),
+            Self::InvalidCommit => write!(f, "invalid commit"),
         }
     }
 }

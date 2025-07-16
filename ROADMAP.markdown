@@ -23,7 +23,7 @@ Milestone 2 - (scarce) equivalent to Git
 	- [x] Binary files
   - [x] `commit`
   - [x] `log`
-  - [ ] `tag`
+  - [x] `tag`
   - [ ] `reset`
   - [ ] `checkout`
   - [ ] `branch`
@@ -60,6 +60,7 @@ Milestone 3 - glitter, speed and extensibility
 - [ ] Diff pretty-printer
 - [ ] Extend configuration
   - [ ] attributes file (linguist override)
+- [ ] Repository cleanup command
 - [ ] Merge conflict pretty-printer
 - [ ] Linguist improvements
   - [ ] Custom parsers

@@ -58,7 +58,7 @@ Let's commit the new changes:
 
 ```
 $ dcg commit "Change foo.txt"
-[mater 3e47a9d8] Change foo.txt
+[master 3e47a9d8] Change foo.txt
   0 files created, 0 files deleted and 1 files modified
 ```
 

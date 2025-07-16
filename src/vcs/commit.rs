@@ -21,7 +21,7 @@ use crate::{
 
 use super::{
     config::User, diffs::DiffType, find_repo, index::get_fname, DcgError, BASE_DIR, BLOBS_DIR,
-    BRANCHES_DIR, DCG_DIR, INDEX_DIR, LAST_DIR, REFS_DIR, TREE_DIR,
+    BRANCHES_DIR, DCG_DIR, INDEX_DIR, LAST_DIR, REFS_DIR, TAGS_DIR, TREE_DIR,
 };
 
 #[derive(Debug, Clone)]
@@ -475,5 +475,13 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> 
             fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
         }
     }
+    Ok(())
+}
+
+pub(crate) fn make_tag<P: AsRef<Path>>(dd: P, commit: [u8; 32], tag: &str) -> Result<()> {
+    let tf = combine_paths!(dd.as_ref(), DCG_DIR, TAGS_DIR, tag);
+
+    File::create(&tf)?.write_all(hex::encode(commit).as_bytes())?;
+
     Ok(())
 }

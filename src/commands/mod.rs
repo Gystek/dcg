@@ -10,6 +10,7 @@ pub(crate) mod init;
 pub(crate) mod log;
 pub(crate) mod rm;
 pub(crate) mod status;
+pub(crate) mod tag;
 
 pub(crate) fn visit_dirs<F: FnMut(&Path) -> Result<()>>(dir: &Path, cb: &mut F) -> Result<()> {
     if dir.is_dir() {
@@ -73,5 +74,12 @@ pub(crate) enum Commands {
         /// display each commit on one line
         #[arg(long = "oneline")]
         one_line: bool,
+    },
+    /// create a tag referencing a commit
+    Tag {
+        /// the tag name
+        tag: String,
+        /// the commit to reference (by default the head of the current branch)
+        commit: Option<String>,
     },
 }
